@@ -12,4 +12,5 @@ apt-key adv --keyserver hkp://keyserver.ubuntu.com --recv E162F504A20CDF15827F71
 apt-key adv --keyserver hkp://keyserver.ubuntu.com --recv 7568D9BB55FF9E5287D586017AE645C0CF8E292A
 apt-get update
 apt-get --assume-yes install pritunl mongodb-server
-systemctl enable --now pritunl mongodb
+systemctl start pritunl mongodb
+systemctl enable pritunl mongodb
