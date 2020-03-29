@@ -3,7 +3,7 @@ shaadowsky Infra repository
 
 bastion_IP = 35.217.43.15
 
-someinternalhost_IP = 10.166.0.8
+someinternalhost_IP = 10.166.0.11
 
 _создан ключ appuser на локальной машине, в metadata ssh public keys проекта добавлена публичный ключ appuser_
 
