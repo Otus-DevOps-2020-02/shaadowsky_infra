@@ -1,9 +1,9 @@
 # shaadowsky_infra
 shaadowsky Infra repository
 
-_ssh-bastion 35.217.43.15_
+bastion_IP = 35.217.43.15
 
-_someinternalhost 10.166.0.8_
+someinternalhost_IP = 10.166.0.8
 
 _создан ключ appuser на локальной машине, в metadata ssh public keys проекта добавлена публичный ключ appuser_
 
@@ -43,3 +43,17 @@ _создан ключ appuser на локальной машине, в metadata
       ProxyJump bastion
 
 после этого remote host доступен по команде _ssh someinsternalhost
+
+Можно сделать через поднятие на бастионе порта, при обращении к которому пробрасывает на нужный внутренний хост
+
+ ### настройка VPN-сервера pritunl для GCP
+
+ [результирующий скрипт](setupvpn.sh) установки pritunl в Ubuntu 18.04 LTS
+
+ [установка](https://docs.pritunl.com/docs/installation)
+
+ [настройка](https://docs.pritunl.com/docs/connecting)
+
+ по окончанию настройки будет известен порт подключения, его надо запомнить/записать.
+
+ далее в консоли GCP создаем правило открытия порта VPN, затем доабляем созданное правило в _Теги сети_  для инстанса bastion. В _Целевые экземпляры_ правила будет указано на какие инстансы действует, можно сразу прикрутить к нужному.
