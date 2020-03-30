@@ -1,6 +1,8 @@
 # shaadowsky_infra
 shaadowsky Infra repository
 
+## ssh-bastion, pritunl
+
 bastion_IP = 35.217.43.15
 
 someinternalhost_IP = 10.166.0.11
@@ -22,8 +24,6 @@ _создан ключ appuser на локальной машине, в metadata
 Можно подключаться на разные порты:
 
     ssh -J <user>@<bastion>:<port> <user>@<remote>:<port>
-
-## ssh-bastion, pritunl  <!--more-->
 
 ### подключение к хосту, находящемуся за ssh-bastion, одной командой типа ssh someinternalhost
 
