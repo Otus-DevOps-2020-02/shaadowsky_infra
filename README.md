@@ -1,11 +1,5 @@
 # shaadowsky_infra
-shaadowsky Infra repository
-
-## application deployment
-
-testapp_IP = 35.198.167.169
-
-testapp_port = 9292
+shaadowsky Infra repository, команды даны для выполнения на локальной Ubuntu 18.04
 
 ### работа с консолью gcloud
 
@@ -34,7 +28,7 @@ gcloud init
 $ gcloud auth list
    Credentialed Accounts
 ACTIVE  ACCOUNT
-*       shaadowsky@gmail.com
+*       <some@mail.com>
 
 To set the active account, run:
     $ gcloud config set account `ACCOUNT`
@@ -54,4 +48,33 @@ gcloud compute instances create reddit-app\
   --restart-on-failure
   ```
 
-anything
+### deployment scripts
+
+Созданы скрипты развертывания:
+
+1. [установка ruby](install_ruby.sh)
+2. [установка mongodb](install_mongodb.sh)
+3. [установка приложения](deploy.sh)
+
+скриптам установлен флаг исполняемости (_chmod +x_):
+
+$ ll
+-rwxr-xr-x 1 shaad shaad  175 мар 30 10:33 deploy.sh
+-rwxr-xr-x 1 shaad shaad  397 мар 30 10:31 install_mongodb.sh
+-rwxr-xr-x 1 shaad shaad  146 мар 30 10:33 install_ruby.sh
+
+### создание разрешающего правила c помощью gcloud
+
+```
+gcloud compute --project=infra-272603 firewall-rules \
+  create puma-9292 --direction=INGRESS --priority=1000 \
+  --network=default --action=ALLOW --rules=tcp:9292 \
+  --source-ranges=0.0.0.0/0 --target-tags=puma-server
+```
+
+
+### Travis CI check
+
+testapp_IP = 35.228.88.190
+
+testapp_port = 9292
