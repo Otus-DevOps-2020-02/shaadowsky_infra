@@ -67,10 +67,7 @@ $ ll
 ### создание разрешающего правила c помощью gcloud
 
 ```
-gcloud compute firewall-rules \
-  create puma-9292 --direction=INGRESS --priority=1000 \
-  --network=default --action=ALLOW --rules=tcp:9292 \
-  --source-ranges=0.0.0.0/0 --target-tags=puma-server
+gcloud compute firewall-rules create puma-9292 --direction=INGRESS --priority=1000 --network=default --action=ALLOW --rules=tcp:9292 --source-ranges=0.0.0.0/0 --target-tags=puma-server
 ```
 
 
