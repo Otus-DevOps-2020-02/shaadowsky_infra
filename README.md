@@ -36,7 +36,9 @@ To set the active account, run:
 
 ### создание инстансов из консоли gcloud
 
-Синтаксис схож с командами qemu/libvirt
+Синтаксис схож с командами qemu/libvirt.
+
+Для указания startup скрипта используется конструкция _--metadata startup-script-url=<link>_ или _--metadata-from-file startup-script=<путь_до_скрипта>_
 
 ```
 gcloud compute instances create reddit-app\
