@@ -23,6 +23,8 @@ _создан ключ appuser на локальной машине, в metadata
 
     ssh -J <user>@<bastion>:<port> <user>@<remote>:<port>
 
+## ssh-bastion, pritunl  <!--more-->
+
 ### подключение к хосту, находящемуся за ssh-bastion, одной командой типа ssh someinternalhost
 
 для подключения используется та же опция ssh proxyjump, что и в примере выше.
