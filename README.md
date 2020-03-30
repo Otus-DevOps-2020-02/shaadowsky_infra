@@ -40,13 +40,12 @@ To set the active account, run:
 
 ```
 gcloud compute instances create reddit-app\
-  --boot-disk-size=10GB \
-  --image-family ubuntu-1604-lts \
+  --boot-disk-size=10GB --image-family ubuntu-1604-lts \
   --image-project=ubuntu-os-cloud \
-  --machine-type=g1-small \
-  --tags puma-server \
-  --restart-on-failure
-  ```
+  --machine-type=g1-small --tags puma-server \
+  --restart-on-failure \
+  --metadata startup-script-url=https://raw.githubusercontent.com/Otus-DevOps-2020-02/shaadowsky_infra/cloud-testapp/full_startup.sh
+```
 
 ### deployment scripts
 
