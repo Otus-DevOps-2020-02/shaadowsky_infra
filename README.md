@@ -1,65 +1,78 @@
 # shaadowsky_infra
-shaadowsky Infra repository
+shaadowsky Infra repository, команды даны для выполнения на локальной Ubuntu 18.04
 
-bastion_IP = 35.217.43.15
+### работа с консолью gcloud
 
-someinternalhost_IP = 10.166.0.11
+Устанавливаем _Google Cloud SDK_ - [инструкция вендора](https://cloud.google.com/sdk/install?hl=ru). Для Ubuntu 18.04 выглядит так:
 
-_создан ключ appuser на локальной машине, в metadata ssh public keys проекта добавлен публичный ключ appuser_
+```
+# Add the Cloud SDK distribution URI as a package source
+echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
 
-### подключение к хосту, находящемуся за ssh-bastion
+# Import the Google Cloud Platform public key
+curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
 
-реализуется через ssh версии =>7.3
+# Update the package list and install the Cloud SDK
+sudo apt-get update && sudo apt-get install google-cloud-sdk
+```
 
-    ssh -i ~/.ssh/appuser -J appuser@35.217.43.15 appuser@10.166.0.8
+инициализируем SDK. Откроется окно с выбором к какому гуглаккаунту привязываться. Подробно [здесь](https://cloud.google.com/sdk/docs/quickstart-debian-ubuntu?hl=ru#initialize_the_sdk)
 
-в общем случае выглядит так (подразумеваем, что ключ один и пользователь на всех машинах совпадает):
+```
+gcloud init
+```
 
-    ssh -J <bastion-host> <remote-host>
+Проверить к какому гугл-аккаунту подключен можно так:
 
-где bastion-host - машина, на которой настроен ssh-bastion, через которую мы подключаемся
+```
+$ gcloud auth list
+   Credentialed Accounts
+ACTIVE  ACCOUNT
+*       <some@mail.com>
 
-Можно подключаться на разные порты:
+To set the active account, run:
+    $ gcloud config set account `ACCOUNT`
+```
 
-    ssh -J <user>@<bastion>:<port> <user>@<remote>:<port>
+### создание инстансов из консоли gcloud
 
-### подключение к хосту, находящемуся за ssh-bastion, одной командой типа ssh someinternalhost
+Синтаксис схож с командами qemu/libvirt.
 
-для подключения используется та же опция ssh proxyjump, что и в примере выше.
+Для указания startup скрипта используется конструкция _--metadata startup-script-url=<link>_ или _--metadata-from-file startup-script=<путь_до_скрипта>_
 
-для упрощения жизни необходимо откорректировать файл _~/.ssh/config_ на локальной машине следующим образом:
+```
+gcloud compute instances create reddit-app\
+  --boot-disk-size=10GB --image-family ubuntu-1604-lts \
+  --image-project=ubuntu-os-cloud \
+  --machine-type=g1-small --tags puma-server \
+  --restart-on-failure \
+  --metadata startup-script-url=https://raw.githubusercontent.com/Otus-DevOps-2020-02/shaadowsky_infra/cloud-testapp/full_startup.sh
+```
 
-    # OTUS ssh-bastion
-    Host bastion
-      User appuser
-      PreferredAuthentications publickey
-      IdentityFile ~/.ssh/appuser
-     HostName 35.217.43.15
+### deployment scripts
 
-    # Otus remote host
-    Host someinternalhost
-      User appuser
-      HostName 10.166.0.8
-      ProxyJump bastion
+Созданы скрипты развертывания:
 
-после этого remote host доступен по команде _ssh someinsternalhost
+1. [установка ruby](install_ruby.sh)
+2. [установка mongodb](install_mongodb.sh)
+3. [установка приложения](deploy.sh)
 
-Можно сделать через поднятие на бастионе порта, при обращении к которому пробрасывает на нужный внутренний хост
+скриптам установлен флаг исполняемости (_chmod +x_):
 
- ### настройка VPN-сервера pritunl для GCP
+$ ll
+-rwxr-xr-x 1 shaad shaad  175 мар 30 10:33 deploy.sh
+-rwxr-xr-x 1 shaad shaad  397 мар 30 10:31 install_mongodb.sh
+-rwxr-xr-x 1 shaad shaad  146 мар 30 10:33 install_ruby.sh
 
- [результирующий скрипт](setupvpn.sh) установки pritunl в Ubuntu 18.04 LTS
+### создание разрешающего правила c помощью gcloud
 
- [установка](https://docs.pritunl.com/docs/installation)
+```
+gcloud compute --project=infra-272603 firewall-rules create puma-9292 --direction=INGRESS --priority=1000 --network=default --action=ALLOW --rules=tcp:9292 --source-ranges=0.0.0.0/0 --target-tags=puma-server
+```
 
- [настройка](https://docs.pritunl.com/docs/connecting)
 
- по окончанию настройки будет известен порт подключения, его надо запомнить/записать.
+### Travis CI check
 
- далее в консоли GCP создаем правило открытия порта VPN, затем доабляем созданное правило в _Теги сети_  для инстанса bastion. В _Целевые экземпляры_ правила будет указано на какие инстансы действует, можно сразу прикрутить к нужному.
+testapp_IP = 35.228.88.190
 
-###_БГГ!! перед пушем в репу и проверкой трэвисом разорвать впн-соединение )))
-
-#### выдача ssl-сертификата для pritunl
-
-нажимаем Settings справа вверху, вносим IP pritunl-сервера в виде <your-IP>.sslip.io в графу Lets Encrypt Domain
+testapp_port = 9292
