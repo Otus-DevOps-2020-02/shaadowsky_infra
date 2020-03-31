@@ -1,78 +1,96 @@
 # shaadowsky_infra
-shaadowsky Infra repository, команды даны для выполнения на локальной Ubuntu 18.04
 
-### работа с консолью gcloud
+## shaadowsky Infra repository
 
-Устанавливаем _Google Cloud SDK_ - [инструкция вендора](https://cloud.google.com/sdk/install?hl=ru). Для Ubuntu 18.04 выглядит так:
+команды даны для выполнения на локальной Ubuntu 18.04
 
-```
-# Add the Cloud SDK distribution URI as a package source
-echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+### установка и настройка packer для работы с GCP
 
-# Import the Google Cloud Platform public key
-curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+Существует в 3 видах: прекомпилованный бинарь, сорцы, установка для вин/мак.
+в моем случае: скачать нужную [версию](https://packer.io/downloads.html), распаковать, переместить в _/usr/local/bin_
 
-# Update the package list and install the Cloud SDK
-sudo apt-get update && sudo apt-get install google-cloud-sdk
-```
-
-инициализируем SDK. Откроется окно с выбором к какому гуглаккаунту привязываться. Подробно [здесь](https://cloud.google.com/sdk/docs/quickstart-debian-ubuntu?hl=ru#initialize_the_sdk)
+Проверим версию:
 
 ```
-gcloud init
+$ packer -v
 ```
 
-Проверить к какому гугл-аккаунту подключен можно так:
+Для управления ресурсами GCP через сторонние приложения (Packer и Terraform) нужно предоставить этим инструментам информацию (credentials) для аутентификации и управлению ресурсами GCP нашего акаунта.
+
+Установка Application Default Credentials (ADC) позволяет приложениям, работающим с GCP ресурсами и использующим Google API библиотеки, управлять ресурсами GCP через авторизованные API вызовы, используя credentials нужного пользователя.
+
+Создаем АDC:
 
 ```
-$ gcloud auth list
-   Credentialed Accounts
-ACTIVE  ACCOUNT
-*       <some@mail.com>
-
-To set the active account, run:
-    $ gcloud config set account `ACCOUNT`
+$ gcloud auth application-default login
 ```
 
-### создание инстансов из консоли gcloud
+### создание packer template
 
-Синтаксис схож с командами qemu/libvirt.
+внутри директории _packer_ создаем файл шаблона - _ubuntu16.json_. Далее будет описана сборка baked-образа ВМ с предустановленными ruby и mongoDB.
 
-Для указания startup скрипта используется конструкция _--metadata startup-script-url=<link>_ или _--metadata-from-file startup-script=<путь_до_скрипта>_
+Секция шаблона _builders_ отвечает за создание ВМ для билда и создание машинного образа в GCP, состоит из:
 
-```
-gcloud compute instances create reddit-app\
-  --boot-disk-size=10GB --image-family ubuntu-1604-lts \
-  --image-project=ubuntu-os-cloud \
-  --machine-type=g1-small --tags puma-server \
-  --restart-on-failure \
-  --metadata startup-script-url=https://raw.githubusercontent.com/Otus-DevOps-2020-02/shaadowsky_infra/cloud-testapp/full_startup.sh
-```
+• type: "googlecompute" - что будет создавать виртуальную
+машину для билда образа (в нашем случае Google Compute
+Engine)
+• project_id: "infra-272603" - id вашего проекта
+• image_family: "reddit-base" - семейство образов к которому
+будет принадлежать новый образ
+• image_name: "reddit-base-{{timestamp}}" - имя создаваемого
+образа
+source_image_family: "ubuntu-1604-lts" - что взять за базовый
+образ для нашего билда
+• zone: "europe-north1-c" - зона, в которой запускать VM для
+билда образа
+• ssh_username: "appuser" - временный пользователь, который
+будет создан для подключения к VM во время билда и
+выполнения команд провижинера (о нем поговорим ниже)
+• machine_type: "f1-micro" - тип инстанса, который запускается
+для билда
 
-### deployment scripts
+секция _provisioners_ позволяет устанавливать нужное ПО, производить настройки системы и конфигурацию приложений на созданной VM.  Опция _execute_command_ позволяет указать, каким способом будет запускаться скрипт.
 
-Созданы скрипты развертывания:
-
-1. [установка ruby](install_ruby.sh)
-2. [установка mongodb](install_mongodb.sh)
-3. [установка приложения](deploy.sh)
-
-скриптам установлен флаг исполняемости (_chmod +x_):
-
-$ ll
--rwxr-xr-x 1 shaad shaad  175 мар 30 10:33 deploy.sh
--rwxr-xr-x 1 shaad shaad  397 мар 30 10:31 install_mongodb.sh
--rwxr-xr-x 1 shaad shaad  146 мар 30 10:33 install_ruby.sh
-
-### создание разрешающего правила c помощью gcloud
+После описания шаблона необходимо проверить шаблон командой
 
 ```
-gcloud compute --project=infra-272603 firewall-rules create puma-9292 --direction=INGRESS --priority=1000 --network=default --action=ALLOW --rules=tcp:9292 --source-ranges=0.0.0.0/0 --target-tags=puma-server
+$ packer validate ubuntu.json
 ```
 
+Если проверка на ошибки прошла успешно, запускаем сборку образа:
 
-### Travis CI check
+```
+$ packer build ubuntu16.json
+```
 
-testapp_IP = 35.228.88.190
+ПРоверка и сборка с использованием шаблона переменных делается с использование флага --var-file=<your_variables>.json:
 
-testapp_port = 9292
+```
+$ packer validate -var-file=variables.json.example ubuntu16.json
+$ packer build -var-file=variables.json ubuntu16.json$
+```
+
+В браузерной консоли можно увидеть как packer запустил инстанс ВМ.
+
+Собранный образ появится в браузерной консоли по пути Compute Engine --> Images.
+
+В файле _variables.json_ определяются/переопределяются обязательные переменные. Пользовательские переменные определяются в самом шаблоне, в разделе _variables_.
+
+### знакомство с Immutable Infrastructure
+
+создан шаблон _[immutable.json](packer/immutable.json)_ использованием _[systemd unit](packer/files/puma.service)_
+
+Собираем immutable образ, его сборка требует собранного образа из предыдущего шага.
+
+```
+$ packer build --var-file=variables.json immutable.json
+```
+
+Выполняем [команду](config-scripts/create-reddit-vm.sh)
+
+```
+$ gcloud compute instances create reddit-full\
+  --boot-disk-size=15GB --image-family reddit-full \
+  --image-project=infra-272603 --machine-type=f1-micro \
+  --tags puma-server --restart-on-failure
+```

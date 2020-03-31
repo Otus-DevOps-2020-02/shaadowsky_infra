@@ -1,0 +1,27 @@
+{
+  "builders": [
+    {
+      "project_id": "infra-272603",
+      "type": "googlecompute",
+      "image_name": "reddit-full-{{timestamp}}",
+      "image_family": "reddit-full",
+      "source_image_family": "reddit-base",
+      "disk_size": "15",
+      "zone": "europe-north1-c",
+      "ssh_username": "appuser"
+    }
+  ],
+
+  "provisioners": [
+    {
+      "type": "file",
+      "source": "files/puma.service",
+      "destination": "/tmp/puma.service"
+    },
+    {
+      "type": "shell",
+      "script": "scripts/install_puma.sh",
+      "execute_command": "sudo {{.Path}}"
+    }
+  ]
+}
