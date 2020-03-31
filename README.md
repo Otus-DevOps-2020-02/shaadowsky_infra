@@ -1,4 +1,5 @@
 # shaadowsky_infra
+
 shaadowsky Infra repository, команды даны для выполнения на локальной Ubuntu 18.04
 
 ### установка и настройка packer для работы с GCP
