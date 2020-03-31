@@ -12,11 +12,11 @@
   "builders": [
     {
       "type": "googlecompute",
-      "project_id": "{{user 'project_id'}}",
+      "project_id": "{{user `project_id`}}",
       "image_name": "reddit-base-{{timestamp}}",
       "image_family": "reddit-base",
-      "image_description": "{{user 'image_description'}}",
-      "source_image_family": "{{user 'source_image_family'}}",
+      "image_description": "{{user `image_description`}}",
+      "source_image_family": "{{user `source_image_family`}}",
       "zone": "europe-north1-c",
       "ssh_username": "appuser",
       "machine_type": "f1-micro",
