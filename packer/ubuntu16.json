@@ -1,6 +1,6 @@
 {
   "variables": {
-      "project-id" "",
+      "project-id": "",
       "source_image_family" : "",
       "image_description": "packer study",
       "disk_size": "10",
