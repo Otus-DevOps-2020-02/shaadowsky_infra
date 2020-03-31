@@ -1,0 +1,10 @@
+{
+    "project_id": "", # Your project-id
+    "source_image_family": "", # Desired image family
+    "machine_type": "f1-micro",
+    "image_description": "packer study",
+    "disk_size": "15",
+    "disk_type": "pd-standard",
+    "network": "default",
+    "tags": "puma-server"
+  }
