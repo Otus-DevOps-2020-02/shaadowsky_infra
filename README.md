@@ -1,6 +1,8 @@
 # shaadowsky_infra
 
-shaadowsky Infra repository, команды даны для выполнения на локальной Ubuntu 18.04
+## shaadowsky Infra repository
+
+команды даны для выполнения на локальной Ubuntu 18.04
 
 ### установка и настройка packer для работы с GCP
 
@@ -52,7 +54,7 @@ source_image_family: "ubuntu-1604-lts" - что взять за базовый
 После описания шаблона необходимо проверить шаблон командой
 
 ```
-packer validate ubuntu.json
+$ packer validate ubuntu.json
 ```
 
 Если проверка на ошибки прошла успешно, запускаем сборку образа:
@@ -61,13 +63,28 @@ packer validate ubuntu.json
 $ packer build ubuntu16.json
 ```
 
-В браузерной коносли можно увидеть как packer запустил инстанс ВМ.
+ПРоверка и сборка с использованием шаблона переменных делается с использование флага --var-file=<your_variables>.json:
+
+```
+$ packer validate -var-file=variables.json.example ubuntu16.json
+$ packer build -var-file=variables.json ubuntu16.json$
+```
+
+В браузерной консоли можно увидеть как packer запустил инстанс ВМ.
 
 Собранный образ появится в браузерной консоли по пути Compute Engine --> Images.
 
+В файле _variables.json_ определяются/переопределяются обязательные переменные. Пользовательские переменные определяются в самом шаблоне, в разделе _variables_.
 
-### Travis CI check
+### знакомство с Immutable Infrastructure
 
-testapp_IP = 35.228.88.190
+создан шаблон _[immutable.json](packer/immutable.json)_ использованием _[systemd unit](packer/files/puma.service)_
 
-testapp_port = 9292
+Если собран предыдущий образ, то достаточно выполнить [команду](config-scripts/create-reddit-vm.sh)
+
+```
+gcloud compute instances create reddit-full\
+  --boot-disk-size=15GB --image-family reddit-full \
+  --image-project=infra-272603 --machine-type=f1-micro \
+  --tags puma-server --restart-on-failure
+```
