@@ -12,7 +12,7 @@
 Проверим версию:
 
 ```
-packer -v
+$ packer -v
 ```
 
 Для управления ресурсами GCP через сторонние приложения (Packer и Terraform) нужно предоставить этим инструментам информацию (credentials) для аутентификации и управлению ресурсами GCP нашего акаунта.
@@ -80,10 +80,16 @@ $ packer build -var-file=variables.json ubuntu16.json$
 
 создан шаблон _[immutable.json](packer/immutable.json)_ использованием _[systemd unit](packer/files/puma.service)_
 
-Если собран предыдущий образ, то достаточно выполнить [команду](config-scripts/create-reddit-vm.sh)
+Собираем immutable образ, его сборка требует собранного образа из предыдущего шага.
 
 ```
-gcloud compute instances create reddit-full\
+$ packer build --var-file=variables.json immutable.json
+```
+
+Выполняем [команду](config-scripts/create-reddit-vm.sh)
+
+```
+$ gcloud compute instances create reddit-full\
   --boot-disk-size=15GB --image-family reddit-full \
   --image-project=infra-272603 --machine-type=f1-micro \
   --tags puma-server --restart-on-failure
