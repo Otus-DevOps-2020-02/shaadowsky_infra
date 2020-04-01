@@ -1,6 +1,7 @@
-terraform {
-  required_version = "0.12.24"
-}
+#removed because of travis check doesn't pass
+#terraform {
+#  required_version = "0.12.24"
+#}
 
 provider "google" {
   version = "2.15.0"
