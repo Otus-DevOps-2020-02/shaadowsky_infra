@@ -11,7 +11,7 @@ provider "google" {
 resource "google_compute_instance" "app" {
   name         = "reddit-app"
   machine_type = "f1-micro"
-  zone         = "europe-north1-c"
+  zone         = "var.zone"
   boot_disk {
     initialize_params {
       image = var.disk_image
@@ -32,7 +32,7 @@ resource "google_compute_instance" "app" {
     user  = "appuser"
     agent = false
     # путь до приватного ключа
-    private_key = file("~/.ssh/appuser")
+    private_key = file(var.private_key_path)
   }
   provisioner "file" {
     source      = "files/puma.service"
@@ -43,7 +43,7 @@ resource "google_compute_instance" "app" {
   }
 }
 
-# создаем прафило файрволла
+# создаем правило файрволла
 resource "google_compute_firewall" "firewall_puma" {
   name = "allow-puma-default"
   # Название сети, в которой действует правило
