@@ -6,6 +6,10 @@ variable region {
   # Значение по умолчанию
   default = "europe-north1"
 }
+variable zone {
+  description = "Zone"
+  default     = "europe-north1-c"
+}
 variable public_key_path {
   # Описание переменной
   description = "Path to the public key used for ssh access"
@@ -16,7 +20,8 @@ variable private_key_path {
 variable disk_image {
   description = "Disk image"
 }
-variable zone {
-  description = "Zone"
-  default     = "europe-north1-c"
+variable public_key {
+  type = "list"
+  description =  "Public key in RSA"
+  default = null
 }

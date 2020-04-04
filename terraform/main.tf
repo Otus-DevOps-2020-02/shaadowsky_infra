@@ -9,10 +9,16 @@ provider "google" {
   region  = var.region
 }
 
+#adding ssh-keys into project's metadata
+resource "google_compute_project_metadata_item" "ssh-keys" {
+  key = "ssh-keys"
+  value = "${join("\n", var.public_key)}"
+}
+
 resource "google_compute_instance" "app" {
   name         = "reddit-app"
   machine_type = "f1-micro"
-  zone         = "var.zone"
+  zone         = var.zone
   boot_disk {
     initialize_params {
       image = var.disk_image
