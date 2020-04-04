@@ -11,7 +11,7 @@ provider "google" {
 
 #adding ssh-keys into project's metadata
 resource "google_compute_project_metadata_item" "ssh-keys" {
-  key = "ssh-keys"
+  key   = "ssh-keys"
   value = "${join("\n", var.public_key)}"
 }
 

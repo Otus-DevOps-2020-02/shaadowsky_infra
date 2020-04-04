@@ -21,7 +21,7 @@ variable disk_image {
   description = "Disk image"
 }
 variable public_key {
-  type = "list"
-  description =  "Public key in RSA"
-  default = null
+  type        = "list"
+  description = "Public key in RSA"
+  default     = null
 }
