@@ -25,3 +25,11 @@ variable public_key {
   description = "Public key in RSA"
   default     = null
 }
+variable port_app {
+  description = "App port"
+  default     = "9292"
+}
+variable quantity {
+  type    = number
+  default = 1
+}

@@ -17,7 +17,7 @@
 
 Проверим версию
 
-```
+```bash
 $ terraform -v
 Terraform v0.12.24
 ```
@@ -30,7 +30,7 @@ _main.tf_ - главный конфигурационный файл с декл
 
 Загрузим провайдер:
 
-```
+```bash
 $ terraform init
 
 Initializing the backend...
@@ -56,7 +56,7 @@ commands will detect it and remind you to do so if necessary.
 
 Для проверки конфигурационного файла используется
 
-```
+```bash
 $ terraform plan
 ```
 
@@ -64,13 +64,13 @@ $ terraform plan
 
 Внизу приводятся итоги планируемых изменений: количество ресурсов, которые будут добавлены, изменены и удалены.
 
-```
+```bash
 Plan: 1 to add, 0 to change, 0 to destroy.
 ```
 
 Для запуска инстанса, писанного в конфигурационном файле main.tf, используется команда:
 
-```
+```bash
 $ terraform apply
 ```
 
@@ -83,14 +83,14 @@ $ terraform apply
 стейт файла.
 Найти внешний IP-адрес созданного инстанса:
 
-```
+```bash
 $ terraform show | grep nat_ip
             nat_ip       = "35.228.16.184"
 ```
 
 Чтобы не грепать, используют output variable в файле _outputs.tf_. Значение выходных переменных можно посмотреть, используя:
 
-```
+```bash
 $ terraform output
 app_external_ip = 104.155.68.69
 ```
@@ -98,7 +98,7 @@ app_external_ip = 104.155.68.69
 Terraform предлагает команду taint, которая позволяет пометить ресурс, который terraform должен пересоздать, при следующем запуске terraform apply.
 Говорим terraform'y пересоздать ресурс VM при следующем применении изменений:
 
-```
+```bash
 $ terraform taint google_compute_instance.app
 The resource google_compute_instance.app in the module root
 has been marked as tainted!
@@ -106,7 +106,7 @@ has been marked as tainted!
 
 Планируем изменения:
 
-```
+```bash
 $ terraform plan
 ...
 -/+ google_compute_instance.app (tainted) (new resource required)
@@ -121,13 +121,24 @@ boot_disk.0.auto_delete: "true" => “true
 
 Теперь можем использовать input переменные в определении других ресурсов. Чтобы получить значение пользовательской переменной внутри ресурса используется синтаксис var.var_name. Определяем соответствующие параметры ресурсов _main.tf_ через переменные:
 
-```
+```bash
 provider "google" {
   version = "2.15.0"
   project = var.project
   region = var.region
 }
 ```
+
+### HW*
+
+добавление ключа через веб-интерфейс и выполнение _terraform apply_ проблем не выявило.
+
+Подсмотреть в [документацию](https://www.terraform.io/docs/providers/google/r/compute_project_metadata_item.html)
+
+
+### HW** добавление балансировщика
+
+создать файл [_lb.tf_](terraform/lb.tf) и описать в нём HTTP-балансировщик, направляюзий трафик на развернутое приложение на инстансе _reddit-app_.
 
 
 
