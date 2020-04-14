@@ -126,5 +126,32 @@ network_interface {
 ```
 $ terraform destroy
 $ terraform plan
-$ teraaform apply
+$ terraform apply
+google_compute_address.app_ip: Creating...
+google_compute_firewall.firewall_puma: Creating...
+google_compute_firewall.firewall_ssh: Creating...
+...
+google_compute_address.app_ip: Creation complete after 12s (ID: reddit-app-ip)
+google_compute_instance.app: Creating...
 ```
+
+Ресурс VM начал создаваться только после завершения создания IP адреса в результате неявной зависимости этих ресурсов.
+
+Terraform поддерживает также явную зависимость, используя параметр _[depends_on](https://www.terraform.io/docs/configuration/resources.html)_.
+
+#### структуризация (выделение) ресурсов
+
+Вынесем БД на отдельный инстанс VM.
+
+Для этого необходимо в директории _packer_, где содержатся шаблоны для билда VM, создать два новых шаблона _db.json_ и _app.json_.
+
+При помощи шаблона _
+[db.json](packer/db.json)_ собирается образ VM, содержащий установленную MongoDB.
+
+Шаблон _[app.json](packer/app.json)_ собирается образа VM, с установленными Ruby.
+
+В качестве базового образа для создания образа использован уже имеющийся шаблон  _[ubuntu16.json](packer/ubuntu16.json)_.
+
+Разбиваем конфиг из _main.tf_ на несколько конфигов.
+
+Вынесем конфигурацию для VM с приложением в файл _[app.tf](terraform/app.tf)_. Провижионерами пока пренебрегаем.
