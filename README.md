@@ -155,3 +155,15 @@ Terraform поддерживает также явную зависимость,
 Разбиваем конфиг из _main.tf_ на несколько конфигов.
 
 Вынесем конфигурацию для VM с приложением в файл _[app.tf](terraform/app.tf)_. Провижионерами пока пренебрегаем.
+
+Внести новую переменную для образов приложения и БД в _variables.tf_
+
+```
+variable app_disk_image {
+  description = "Disk image for reddit app"
+  default = "reddit-app-base"
+}
+variable db_disk_image {
+  description = "Disk image for reddit db"
+  default = "reddit-db-base"
+}```
