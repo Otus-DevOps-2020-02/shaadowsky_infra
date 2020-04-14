@@ -20,11 +20,6 @@ variable private_key_path {
 variable disk_image {
   description = "Disk image"
 }
-variable public_key {
-  type        = "list"
-  description = "Public key in RSA"
-  default     = null
-}
 variable port_app {
   description = "App port"
   default     = "9292"
