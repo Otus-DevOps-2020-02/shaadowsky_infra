@@ -33,3 +33,7 @@ variable quantity {
   type    = number
   default = 1
 }
+variable "ssh-keys" {
+  type    = string
+  default = null
+}

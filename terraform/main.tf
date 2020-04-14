@@ -1,6 +1,6 @@
-#terraform {
-#  required_version = "0.12.8"
-#}
+terraform {
+  required_version = "~>0.12"
+}
 
 provider "google" {
   version = "2.15"
@@ -8,10 +8,28 @@ provider "google" {
   region  = var.region
 }
 
-# create instance
+# add ssh-keys into project
+resource "google_compute_project_metadata_item" "appuser_key" {
+  key   = "ssh-keys"
+  value = var.ssh-keys
+}
+
+# add firewall rule
+resource "google_compute_firewall" "firewall_puma" {
+  name    = "allow-puma-default"
+  network = "default"
+  allow {
+    protocol = "tcp"
+    ports    = ["9292"]
+  }
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["reddit-app"]
+}
+
+# lets create instances
 resource "google_compute_instance" "app" {
-  count        = var.quantity
-  name         = "reddit-app-${count.index}"
+  #  count        = var.quantity
+  name         = "reddit-app"
   machine_type = "f1-micro"
   zone         = var.zone
   tags         = ["reddit-app"]
@@ -20,11 +38,9 @@ resource "google_compute_instance" "app" {
       image = var.disk_image
     }
   }
-
   metadata = {
     ssh-keys = "appuser:${file(var.public_key_path)}"
   }
-
   network_interface {
     network = "default"
     access_config {}
@@ -46,40 +62,4 @@ resource "google_compute_instance" "app" {
   provisioner "remote-exec" {
     script = "files/deploy.sh"
   }
-}
-
-# 9292 healthcheck
-resource "google_compute_http_health_check" "tcp-9292-check" {
-  name               = "tcp-9292-check"
-  request_path       = "/"
-  port               = 9292
-  check_interval_sec = 10
-  timeout_sec        = 3
-}
-
-resource "google_compute_firewall" "firewall_puma" {
-  name    = "allow-puma-default"
-  network = "default"
-  allow {
-    protocol = "tcp"
-    ports    = ["9292"]
-  }
-  source_ranges = ["0.0.0.0/0"]
-  target_tags   = ["reddit-app"]
-}
-
-# ssh-keys
-resource "google_compute_project_metadata_item" "ssh-keys" {
-  key   = "ssh-keys"
-  value = "${join("\n", var.public_key)}"
-}
-
-# resource pool
-resource "google_compute_target_pool" "app-pool" {
-  name      = "app-pool"
-  region    = var.region
-  instances = ["europe-north1-c/reddit-app"]
-  health_checks = [
-    google_compute_http_health_check.tcp-9292-connect.name
-  ]
 }
