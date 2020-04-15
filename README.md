@@ -38,7 +38,7 @@ default-allow-ssh       default  INGRESS    65534     tcp:22                    
 
 После правила файервола для puma cоздаем ресурс в _main.tf_  с такой же конфигурацией, что и у выведенного выше правила.
 
-```
+```code
 resource "google_compute_firewall" "firewall_ssh" {
   name = "default-allow-ssh"
   network = "default"
@@ -54,7 +54,7 @@ resource "google_compute_firewall" "firewall_ssh" {
 
 ВНИМАНИЕ, при попытке выполнения _terraform apply_ появится ошибка (см. ниже), вызванная наличием вручную добавленного правила.
 
-```
+```bash
 Error: Error creating Firewall: googleapi: Error 409: The resource 'projects/infra-272603/global/firewalls/default-allow-ssh' already exists, alreadyExists
 ```
 
@@ -62,7 +62,7 @@ Error: Error creating Firewall: googleapi: Error 409: The resource 'projects/inf
 
 Команда _terraform import_ позволяет добавить информацию о созданном без помощи Terraform ресурсе в state файл. В директории terraform выполните команду:
 
-```
+```bash
 $ terraform import google_compute_firewall.firewall_ssh default-allow-ssh
 google_compute_firewall.firewall_ssh: Importing from ID "default-allow-ssh"...
 google_compute_firewall.firewall_ssh: Import prepared!
@@ -74,7 +74,7 @@ Import successful!
 
 Из планируемых изменений видно, что description(описание) существующего правила будет удалено. Добавим описание в конфигурацию ресурса firewall_ssh.resource:
 
-```
+```code
 "google_compute_firewall" "firewall_ssh" {
   name = "default-allow-ssh"
   network = "default"
@@ -83,7 +83,7 @@ Import successful!
 
 Выполняем _apply_:
 
-```
+```bash
 $ terraform apply
 ```
 
@@ -91,7 +91,7 @@ $ terraform apply
 
 Зададим IP для инстанса с приложением в виде внешнего ресурса. Для этого определим ресурс _google_compute_address_ в конфигурационном файле _main.tf_.
 
-```
+```code
 resource "google_compute_address" "app_ip" {
   name = "reddit-app-ip"
 }
@@ -101,7 +101,7 @@ resource "google_compute_address" "app_ip" {
 
 Пересоздаём инфраструктуру:
 
-```
+```bash
 $ terraform destroy
 $ teraaform apply
 ```
@@ -110,7 +110,7 @@ $ teraaform apply
 
 Для того чтобы использовать созданный IP адрес в нашем ресурсе VM нам необходимо сослаться на атрибуты ресурса, который этот IP создает, внутри конфигурации ресурса VM. В конфигурации ресурса VM определите, IP адрес для создаваемого инстанса.
 
-```
+```code
 network_interface {
  network = "default"
  access_config {
@@ -123,7 +123,7 @@ network_interface {
 
 Пересоздаём все ресурсы и смотрим на очередность создания ресурсов сейчас
 
-```
+```bash
 $ terraform destroy
 $ terraform plan
 $ terraform apply
@@ -158,7 +158,7 @@ Terraform поддерживает также явную зависимость,
 
 Внести новую переменную для образов приложения и БД в _variables.tf_
 
-```
+```code
 variable app_disk_image {
   description = "Disk image for reddit app"
   default = "reddit-app-base"
@@ -172,7 +172,7 @@ variable db_disk_image {
 
 В итоге, в файле _main.tf_ должно остаться только определение провайдера:
 
-```
+```code
 provider "google" {
   version = "~> 2.15"
   project = var.project
@@ -182,9 +182,9 @@ provider "google" {
 
 СЮРПРИЗ, надо создать образа пакером. Перейте в диру packer и создать образа, определив файл с переменными:
 
-```
+```bash
 $ cd <project_dir>/packer
-$ validate -var-file=variables.json app.json
+$ packer validate -var-file=variables.json app.json
 $ packer validate -var-file=variables.json db.json
 $ packer build -var-file=variables.json app.json
 $ packer build -var-file=variables.json db.json
@@ -192,9 +192,121 @@ $ packer build -var-file=variables.json db.json
 
 Перейти в диру с терраформом, отформатировать файлы и проверить корректность создания проекта:
 
-```
+```bash
 $ cd <project_dir>/terraform
 $ terraform fmt
 $ terraform plan
 $ terraform apply
 ```
+
+(note) в процессе пришлось пересоздать образы с предыдущих шагов
+
+Проверил, что всё ОК и удалил созданные ресурсы
+
+```bash
+$ terrafrom destroy
+```
+
+
+#### создание модулей
+
+Теперь кофнигурация инфраструктуры готова к работе с модулями. Создаем внутри директории _terraform_ директорию _modules_, в которой будут определятся, внезапно, модули.
+
+Внутри _modules/_ создаем директории _db/_ и _app/_. Внутри каждой из созданных директорий создаем файлы _main.tf_, _variables.tf_, _outputs.tf_.
+
+```
+$ mkdir modules/{db,app}
+$ touch modules/{db,app}/{main,variables,outputs}.tf
+```
+
+Скопировать содержимое _db.tf_ и _app.tf_ в соответствующие им _main.tf_ модулей.
+
+Определяем переменные  _modules/db/variables.tf_:
+
+```code
+variable public_key_path {
+  description = "Path to the public key used to connect to instance"
+}
+
+variable zone {
+  description = "Zone"
+}
+
+variable db_disk_image {
+  description = "Disk image for reddit db"
+  default     = "reddit-db-base"
+}
+```
+
+Определяем переменные  _modules/app/variables.tf_:
+
+```code
+variable public_key_path {
+  description = "Path to the public key used to connect to instance"
+}
+
+variable zone {
+  description = "Zone"
+}
+
+variable app_disk_image {
+  description = "Disk image for reddit app"
+  default     = "reddit-app-base"
+}
+```
+
+Определяем выходные переменные для приложения - _modules/app/outputs.tf_
+
+```code
+output "app_external_ip" {
+  value = google_compute_instance.app.network_interface.0.access_config.0.assigned_nat_ip
+}
+```
+
+Прежде чем вызывать и проверять модули, для начала удалим _db.tf_ и _app.tf_ в нашей директории, чтобы terraform перестал их использовать.
+
+В файл main.tf, где определен провайдер, вставим секции вызова созданных модулей.
+
+```code
+module "app" {
+  source          = "./modules/app"
+  public_key_path = var.public_key_path
+  zone            = var.zone
+  app_disk_image  = var.app_disk_image
+}
+
+module "db" {
+  source          = "./modules/db"
+  public_key_path = var.public_key_path
+  zone            = var.zone
+  db_disk_image   = var.db_disk_image
+}
+```
+
+Чтобы начать использовать модули, нужно их загрузить из указанного источника. В нашем случае источником модулей будет локальная папка на диске. Используем команду для загрузки модулей. В директории terraform выполнить:
+
+```bash
+$ terraform get
+- app in modules/app
+- db in modules/db
+
+$ tree .terraform
+.terraform
+├── modules
+│   └── modules.json
+└── plugins
+    └── linux_amd64
+        ├── lock.json
+        └── terraform-provider-google_v2.15.0_x4
+
+3 directories, 3 files
+
+```
+
+Модули будут загружены в директорию _.terraform_, в которой уже содержится провайдер.
+
+
+
+
+!!!!
+ОСТАНОВИЛСЯ на 40 листе презы
