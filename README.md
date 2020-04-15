@@ -305,8 +305,64 @@ $ tree .terraform
 
 Модули будут загружены в директорию _.terraform_, в которой уже содержится провайдер.
 
+Применяем _terraform plan_:
 
+```bash
+$ terraform plan
 
+Error: Reference to undeclared resource
 
-!!!!
-ОСТАНОВИЛСЯ на 40 листе презы
+  on outputs.tf line 2, in output "app_external_ip":
+   2:   value = google_compute_instance.app.network_interface[0].access_config[0].nat_ip
+
+A managed resource "google_compute_instance" "app" has not been declared in
+the root module.
+```
+
+Оп, ошибка. Надо переопределить переменную для внешнего IP инстанса:
+
+```code
+output "app_external_ip" {
+  value = module.app.app_external_ip
+}
+```
+
+Все ОК:
+
+```bash
+$ terraform plan
+Refreshing Terraform state in-memory prior to plan...
+The refreshed state will be used to calculate this plan, but will not be
+persisted to local or remote state storage.
+...
+Plan: 6 to add, 0 to change, 0 to destroy.
+```
+
+Теперь выполняем то же самое для _vpc.tf_ из директории _terraform/_.
+
+```bash
+$ mkdir modules/vpc/
+$ touch modules/vpc/{outputs,variables}.tf
+$ mv vpc.tf modules/vpc/main.tf
+```
+
+Объявляем модуль vpc в основном _main.tf_:
+
+```code
+module "vpc" {
+  source          = "./modules/vpc"
+}
+```
+
+подгружаем модуль и проверяем:
+
+```bash
+$ terraform get
+- vpc in modules/vpc
+$ terraform plan
+...
+Plan: 6 to add, 0 to change, 0 to destroy.
+$ terraform apply
+...
+Apply complete! Resources: 6 added, 0 changed, 0 destroyed.
+```
