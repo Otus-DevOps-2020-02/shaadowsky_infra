@@ -366,3 +366,67 @@ $ terraform apply
 ...
 Apply complete! Resources: 6 added, 0 changed, 0 destroyed.
 ```
+
+#### параметризация модулей
+
+Приведем пример параметризации модулей за счет использования input переменных. В созданном модуле vpc используем переменную для конфигурации допустимых адресов.
+
+_terraform/vpc/main.tf_:
+
+```code
+resource "google_compute_firewall" "firewall_ssh" {
+  name = "default-allow-ssh"
+  network = "default"
+  allow {
+   protocol = "tcp"
+    ports = ["22"]
+  }
+  source_ranges = var.source_ranges
+}
+```
+
+_terraform/vpc/variables.tf_:
+
+```code
+variable source_ranges {
+  description = "Allowed IP addresses"
+  default = ["0.0.0.0/0"]
+}
+```
+
+В результате этих изменений можно будет задавать диапазоны IP-адресов, с которых доступен проект, для правила файервола при вызове модуля.
+
+#### переиспользование модулей
+
+Основная задача, решаемая модулями - увеличение переиспользования кода, что помогает следовать принципу DRY (Do not Repeat Yourself). Описанная в модулях инфраструктура может быть использована на разных стадиях непрерывной поставки с необходимыми условиями. Далее создаем инфру для stage и production с использованием аозданных модулей.
+
+В директории _terraform_ создаем директории _stage_ и _prod_. Затем скопируем файлы _main.tf_, _variables.tf_, _outputs.tf_, _terraform.tfvars_ из директории _terraform_ в каждую из созданных директорий. Поменяем пути в _terraform/main.tf_ на ../modules/xxx. Инфраструктура в обоих окружениях будет идентична, со следующими отличиями: в stage будет открыт ssh-доступ для всех ip-адресов, а в окружении prod откроем доступ только для своего IP. Выполняется изменением параметра source_ranges в модуле vpc.
+
+```bash
+$ mkdir prod stage
+$ cp terraform.tfvars stage/
+$ cp {main,variables,outputs}.tf stage/
+$ cp terraform.tfvars prod/
+$ cp {main,variables,outputs}.tf prod/
+
+```
+
+_terraform/stage/main.tf_:
+
+```code
+...
+module "vpc" {
+  source        = "../modules/vpc"
+  source_ranges = ["0.0.0.0/0"]
+}
+```
+
+_terraform/prod/main.tf_:
+
+```code
+...
+module "vpc" {
+  source = "../modules/vpc"
+  source_ranges = ["local_ip/32"]
+}
+```
