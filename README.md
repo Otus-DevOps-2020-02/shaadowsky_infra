@@ -154,7 +154,7 @@ Terraform поддерживает также явную зависимость,
 
 Разбиваем конфиг из _main.tf_ на несколько конфигов.
 
-Вынесем конфигурацию для VM с приложением в файл _[app.tf](terraform/app.tf)_. Провижионерами пока пренебрегаем.
+Вынесем конфигурацию для VM с приложением в файл _app.tf_. Провижионерами пока пренебрегаем.
 
 Внести новую переменную для образов приложения и БД в _variables.tf_
 
@@ -167,3 +167,34 @@ variable db_disk_image {
   description = "Disk image for reddit db"
   default = "reddit-db-base"
 }```
+
+Вынесем правило файервола для ssh-доступа в файл _vpc.tf_. Правило будет применимо для всех инстансов нашей сети.
+
+В итоге, в файле _main.tf_ должно остаться только определение провайдера:
+
+```
+provider "google" {
+  version = "~> 2.15"
+  project = var.project
+  region = var.region
+}
+```
+
+СЮРПРИЗ, надо создать образа пакером. Перейте в диру packer и создать образа, определив файл с переменными:
+
+```
+$ cd <project_dir>/packer
+$ validate -var-file=variables.json app.json
+$ packer validate -var-file=variables.json db.json
+$ packer build -var-file=variables.json app.json
+$ packer build -var-file=variables.json db.json
+```
+
+Перейти в диру с терраформом, отформатировать файлы и проверить корректность создания проекта:
+
+```
+$ cd <project_dir>/terraform
+$ terraform fmt
+$ terraform plan
+$ terraform apply
+```
