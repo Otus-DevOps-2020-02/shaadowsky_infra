@@ -430,3 +430,33 @@ module "vpc" {
   source_ranges = ["local_ip/32"]
 }
 ```
+
+#### работа с реестром модулей
+
+В сентябре 2017 компания HashiCorp запустила публичный реестр модулей для terraform. До этого модули можно было либо хранить либо локально, либо забирать из Git, Mercurial или HTTP. На главной странице можно искать необходимые модули по названию и фильтровать по провайдеру. Например, [ссылка](https://registry.terraform.io/browse?provider=google) модулей для провайдера google. Модули бывают Verified и обычные. Verified это модули от HashiCorp и ее партнеров.
+
+попробуем воспользоваться модулем [storage-bucket](https://registry.terraform.io/modules/SweetOps/storage-bucket/google) для создания бакета в сервисе Storage.
+
+Создаем в папке _terraform_ файл _storage-bucket.tf_ со следующим содержанием:
+
+```code
+provider "google" {
+  version = "~> 2.15"
+  project = var.project
+  region  = var.region
+}
+
+module "storage-bucket" {
+  source  = "SweetOps/storage-bucket/google"
+  version = "0.3.0"
+
+  # Имя поменяйте на другое
+  name = "storage-bucket-shaad"
+}
+
+output storage-bucket_url {
+  value = module.storage-bucket.url
+}
+```
+
+Создайть или скопировать готовые _variables.tf_ и _terraform.tfvars_ для проекта и региона и применить конфигурацию тераформа. Проверить с помощью gcloud или веб-консоли, что бакеты создались и доступны.
