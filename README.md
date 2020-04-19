@@ -460,3 +460,41 @@ output storage-bucket_url {
 ```
 
 Создайть или скопировать готовые _variables.tf_ и _terraform.tfvars_ для проекта и региона и применить конфигурацию тераформа. Проверить с помощью gcloud или веб-консоли, что бакеты создались и доступны.
+
+#### (starred task) хранение стейт файла в удаленном бэкенде
+
+чтобы не привязываться к аппаратной составляющей, файл _terraform.tfstate_ можно положить в бакет (storage bucket) в Google Cloud Storage (GCS).
+
+в файле _terraform/storage-backet.tf_ вносим описание бакета и ссылку доступа к нему:
+
+```code
+module "tf-backend-bucket-prod" {
+  source  = "git::https://github.com/SweetOps/terraform-google-storage-bucket.git?ref=master"
+  name = "tf-back-prod"
+  stage = "prod"
+  location = "europe-north1"
+}
+output tf-backend-bucket-prod-url {
+  value = module.tf-backend-bucket-prod.url
+}
+```
+
+**ВНИМАНИЕ** использовать сразу master в ссылках на какие-либо проекты в значении source опасно!! Использовано в учебных целях, в продакшн кейсах найти способ указания конкретной версии
+
+**memo** можно из _terraform/storage-backet.tf_ впинать в _terraform/modules/_, вроде логичнее получится, все модули в одном месте.
+
+После описания бакетов в файлы _main.tf_ каждого окружения (в моём случае prod и stage) вносим в начало файла в секцию terraform  указание на бакет.
+
+```code
+terraform {
+  backend "gcs" {
+    bucket = "<окружение>-<name_of_bucket>"
+  }
+}
+```
+
+Значение bucket выставляется так: НазваниеОкружения-NameБакета, например, для бакета окружения stage в мом случае будет так:
+
+```code
+    bucket = "stage-<name_of_bucket>"
+```

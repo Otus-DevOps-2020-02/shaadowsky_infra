@@ -1,6 +1,10 @@
 terraform {
   required_version = "~>0.12"
+  backend "gcs"{
+    bucket = "prod-tf-back-prod"
+  }
 }
+
 
 provider "google" {
   version = "~> 2.15"

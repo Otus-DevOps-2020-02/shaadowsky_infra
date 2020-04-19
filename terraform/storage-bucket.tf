@@ -4,14 +4,24 @@ provider "google" {
   region  = var.region
 }
 
-module "storage-bucket" {
-  source  = "SweetOps/storage-bucket/google"
-  version = "0.3.0"
-
-  # Имя поменяйте на другое
-  name = "storage-bucket-shaad"
+module "tf-backend-bucket-prod" {
+  source   = "git::https://github.com/SweetOps/terraform-google-storage-bucket.git?ref=master"
+  name     = "tf-back-prod"
+  stage    = "prod"
+  location = "europe-north1"
 }
 
-output storage-bucket_url {
-  value = module.storage-bucket.url
+module "tf-backend-bucket-stage" {
+  source   = "git::https://github.com/SweetOps/terraform-google-storage-bucket.git?ref=master"
+  name     = "tf-back-stage"
+  stage    = "stage"
+  location = "europe-north1"
+}
+
+output tf-backend-bucket-prod-url {
+  value = module.tf-backend-bucket-prod.url
+}
+
+output tf-backend-bucket-stage-url {
+  value = module.tf-backend-bucket-stage.url
 }

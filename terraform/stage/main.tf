@@ -1,5 +1,8 @@
 terraform {
   required_version = "~>0.12"
+  backend "gcs"{
+    bucket = "stage-tf-back-stage"
+  }
 }
 
 provider "google" {
