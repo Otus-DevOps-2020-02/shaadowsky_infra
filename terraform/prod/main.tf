@@ -1,10 +1,9 @@
 terraform {
-  required_version = "~>0.12"
-  backend "gcs"{
+  #  required_version = "~>0.12"
+  backend "gcs" {
     bucket = "prod-tf-back-prod"
   }
 }
-
 
 provider "google" {
   version = "~> 2.15"
@@ -13,20 +12,18 @@ provider "google" {
 }
 
 module "app" {
-  source          = "../modules/app"
-  public_key_path = var.public_key_path
-  zone            = var.zone
-  app_disk_image  = var.app_disk_image
+  env_sfx        = var.env
+  source         = "../modules/app"
+  db_internal_ip = module.db.db_internal_ip
+  dep_sw         = var.dep_sw
 }
 
 module "db" {
-  source          = "../modules/db"
-  public_key_path = var.public_key_path
-  zone            = var.zone
-  db_disk_image   = var.db_disk_image
+  env_sfx = var.env
+  source  = "../modules/db"
 }
 
 module "vpc" {
-  source          = "../modules/vpc"
-  source_ranges = ["37.49.161.230/32"]
+  source        = "../modules/vpc"
+  source_ranges = var.source_ranges
 }

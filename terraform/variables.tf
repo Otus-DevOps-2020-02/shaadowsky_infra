@@ -1,5 +1,6 @@
 variable project {
   description = "Project ID"
+  default     = "infra-272603"
 }
 variable region {
   description = "Region"

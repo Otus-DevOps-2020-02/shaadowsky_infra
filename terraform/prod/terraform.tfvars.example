@@ -1,8 +1,8 @@
-project          = "infra-272603"
-public_key_path  = "~/.ssh/appuser.pub"
-private_key_path = "~/.ssh/appuser"
-disk_image       = "reddit-base-1585621396"
-zone             = "europe-north1-c"
-ssh-keys         = <<EOF
-  appuser:ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDIflLZ38sj04NqSmkejQBm1Ow/sXiE+xd0MAn+4AwaTH3AHvilIavh728NxnFxgUxj0wl1/1qd8dZIBKewWu8LYK9/HheeBXeHIb8eHiVdiT2TKWS+pAn2OLyue8p83JODaOiI8izVEuHv8tjo4C3MtUYS06LIPe73RT7gcMzj9JTEKS8u8R230aLIxdEBfwA9tSrE1YG2l4FPZVumwfd1Q/jGy26vjmkctdRHuq8MiSrQea1DfiWGnTKkkIwfgST9ioCVUBBaJn9f+rQgyYWZ+zjmAey0dFhqwhx0uD+HErPHgHtdaP0Oeu8dvt0ZqV/P6qxBrR71Iz4y0goOOqff appuser
-  EOF
+# from which network allow ssh access
+source_ranges = ["0.0.0.0/0"]
+
+# set environment
+env = "prod"
+
+# would we deploy?
+dep_sw = true
