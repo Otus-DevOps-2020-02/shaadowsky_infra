@@ -30,3 +30,24 @@ easy_install `cat requirements.txt`
 yum install ansible
 apt install ansible
 ```
+
+Создадим инвентори файл ansible/inventory, в котором укажем информацию о созданном инстансе приложения и параметры подключения к нему по SSH:
+
+```code
+appserver ansible_host=35.228.88.190 ansible_user=appuser ansible_private_key_file=~/.ssh/appuser
+```
+
+проверяем, что ансибл подключяется к хосту:
+
+```bash
+$ cd ../ansible/
+$ ansible appserver -i ./inventory -m ping
+The authenticity of host '35.228.88.190 (35.228.88.190)' can't be established.
+ECDSA key fingerprint is SHA256:dI8TaLlzSS3pemvUVdoLYm8Eutl4W9IHbjMUEYvr/RE.
+Are you sure you want to continue connecting (yes/no)? yes
+...
+appserver | SUCCESS => {
+...
+    "ping": "pong"
+}
+```
