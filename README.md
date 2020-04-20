@@ -42,7 +42,7 @@ terraform apply -auto-approve -parallelism=5
 Создадим инвентори файл ansible/inventory, в котором укажем информацию о созданном инстансе приложения и параметры подключения к нему по SSH:
 
 ```code
-appserver ansible_host=35.228.88.190 ansible_user=appuser ansible_private_key_file=~/.ssh/appuser
+appserver ansible_host=<ip_address> ansible_user=appuser ansible_private_key_file=~/.ssh/appuser
 ```
 
 проверяем, что ансибл подключяется к хосту:
@@ -50,9 +50,6 @@ appserver ansible_host=35.228.88.190 ansible_user=appuser ansible_private_key_fi
 ```bash
 $ cd ansible/
 $ ansible appserver -i ./inventory -m ping
-The authenticity of host '35.228.88.190 (35.228.88.190)' can't be established.
-ECDSA key fingerprint is SHA256:dI8TaLlzSS3pemvUVdoLYm8Eutl4W9IHbjMUEYvr/RE.
-Are you sure you want to continue connecting (yes/no)? yes
 ...
 appserver | SUCCESS => {
 ...
@@ -72,5 +69,23 @@ $ ansible dbserver -i inventory -m ping
     "changed": false, 
     "ping": "pong"
 }
+```
+
+Для упрощения работы с инвентори создаём конфигурационный файл _ansible/ansible.cfg_ со следующим содержимым:
+
+```code
+[defaults]
+inventory = ./inventory
+remote_user = appuser
+private_key_file = ~/.ssh/appuser
+host_key_checking = False
+retry_files_enabled = False
+```
+
+После этого можно убрать избыточную информацию из _inventory_ , сведя его к следующему содержанию:
+
+```code
+appserver ansible_host=<ip_address>
+dbserver ansible_host=<ip_address>
 ```
 
