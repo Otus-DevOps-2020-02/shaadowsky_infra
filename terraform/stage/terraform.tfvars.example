@@ -2,7 +2,7 @@
 source_ranges = ["0.0.0.0/0"]
 
 # set environment
-env = "prod"
+env = "stage"
 
 # would we deploy?
 dep_sw = true
