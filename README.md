@@ -60,5 +60,17 @@ appserver | SUCCESS => {
 }
 ```
 
-Добавляем в инвентори хоcт dbserver. Для этого надо добавить для инстанса db внешнее соединение (посмотри в инстанс app, скопируй секции network_interface и connection) и пересоздать проект (terraform apply)
+Добавляем в инвентори хоcт dbserver. Для этого надо добавить для инстанса db внешнее соединение (посмотри в инстанс app, см. в инвенториn) и пересоздать проект (terraform apply)
+
+Проверить внешний ip можно использовав _terraform show_
+
+Проверяем доступность dbserver:
+
+```bash
+$ ansible dbserver -i inventory -m ping
+...
+    "changed": false, 
+    "ping": "pong"
+}
+```
 
