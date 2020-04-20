@@ -31,6 +31,14 @@ yum install ansible
 apt install ansible
 ```
 
+Поднять приложение из окружения stage
+
+```bash
+cd terraform/stage
+terraform init
+terraform apply -auto-approve -parallelism=5
+```
+
 Создадим инвентори файл ansible/inventory, в котором укажем информацию о созданном инстансе приложения и параметры подключения к нему по SSH:
 
 ```code
@@ -40,7 +48,7 @@ appserver ansible_host=35.228.88.190 ansible_user=appuser ansible_private_key_fi
 проверяем, что ансибл подключяется к хосту:
 
 ```bash
-$ cd ../ansible/
+$ cd ansible/
 $ ansible appserver -i ./inventory -m ping
 The authenticity of host '35.228.88.190 (35.228.88.190)' can't be established.
 ECDSA key fingerprint is SHA256:dI8TaLlzSS3pemvUVdoLYm8Eutl4W9IHbjMUEYvr/RE.
@@ -51,3 +59,6 @@ appserver | SUCCESS => {
     "ping": "pong"
 }
 ```
+
+Добавляем в инвентори хоcт dbserver. Для этого надо добавить для инстанса db внешнее соединение (посмотри в инстанс app, скопируй секции network_interface и connection) и пересоздать проект (terraform apply)
+
