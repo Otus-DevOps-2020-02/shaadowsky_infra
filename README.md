@@ -89,3 +89,32 @@ appserver ansible_host=<ip_address>
 dbserver ansible_host=<ip_address>
 ```
 
+Проверяем возможность подключения к dbserver:
+
+```bash
+$  ansible dbserver -m command -a uptime
+...
+dbserver | CHANGED | rc=0 >>
+ 07:27:45 up  2:27,  1 user,  load average: 0.00, 0.00, 0.00
+```
+
+Для удобства создаем группы хостов в _ansible/inventory_:
+
+```code
+[app] # ⬅ Это название группы
+appserver ansible_host=<ip_address> # ⬅ Cписок хостов в данной группе
+
+[db]
+dbserver ansible_host=<ip_address>
+```
+
+Проверяем возможность пинговать сразу группу:
+
+```bash
+$ ansible app -m ping
+... 
+    "changed": false, 
+    "ping": "pong"
+}
+```
+
