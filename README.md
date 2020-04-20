@@ -6,8 +6,6 @@
 
 ### prerequisites
 
-### prerequisites
-
 команды даны для выполнения на локальной Ubuntu 18.04
 
 1. terraform >0.12.0
@@ -302,68 +300,8 @@ $ tree .terraform
         └── terraform-provider-google_v2.15.0_x4
 
 3 directories, 3 files
-=======
-3. удалены ключи пользователя appuser из метаданных проекта
-4. нужен собранный образ reddit-full из предыдущего задания по [packer](packer/)
 
-### установка terraform
-
-Необходимо [скачать](https://www.terraform.io/downloads.html) необходимую версию terraform и распаковать в _/usr/local/bin_.
-
-Проверим версию
-
-```bash
-$ terraform -v
-Terraform v0.12.24
 ```
-
-### выполнение работы
-
-_main.tf_ - главный конфигурационный файл с декларативным описанием
-
-Создаем сервисный аккаунт для терраформа [инструкция](https://cloud.google.com/iam/docs/creating-managing-service-accounts)
-
-Загрузим провайдер:
-
-```bash
-$ terraform init
-
-Initializing the backend...
-
-Initializing provider plugins...
-- Checking for available provider plugins...
-- Downloading plugin for provider "google" (hashicorp/google) 2.15.0...
-
-Terraform has been successfully initialized!
-
-You may now begin working with Terraform. Try running "terraform plan" to see
-any changes that are required for your infrastructure. All Terraform commands
-should now work.
-
-If you ever set or change modules or backend configuration for Terraform,
-rerun this command to reinitialize your working directory. If you forget, other
-commands will detect it and remind you to do so if necessary.
-```
-
-Полный список предоставляемых terraform'ом ресурсов для работы с GCP можно [посмотреть слева](https://www.terraform.io/docs/providers/google/index.html)
-
-Чтобы запустить VM при помощи terraform, нужно воспользоваться ресурсом [google compute instance](https://www.terraform.io/docs/providers/google/r/compute_instance.html), который позволяет управлять инстансами VM.
-
-Для проверки конфигурационного файла используется
-
-```bash
-$ terraform plan
-```
-
-знак _+_ перед наименованием ресурса означает, что ресурс будет добавлен. Далее приведены атрибуты этого ресурса. “<computed>” означает, что данные атрибуты еще не известны terraform'у и их значения будут получены во время создания ресурса.
-
-Внизу приводятся итоги планируемых изменений: количество ресурсов, которые будут добавлены, изменены и удалены.
-
-```bash
-Plan: 1 to add, 0 to change, 0 to destroy.
-```
-
-Для запуска инстанса, писанного в конфигурационном файле main.tf, используется команда:
 
 Модули будут загружены в директорию _.terraform_, в которой уже содержится провайдер.
 
