@@ -118,3 +118,19 @@ $ ansible app -m ping
 }
 ```
 
+В результате вышевыполненных действий получен инвентори в ini-формате. Возможно выполнять в [yaml-формате](ansible/inventory.yml), ознакомиться с документацией [тут](https://docs.ansible.com/ansible/latest/intro_inventory.html). Файлы корректно называет с окончанием yaml или yml.
+
+Проверяем корректность (применяется группа all, явно не обозначенная, но существуюшая по логике ансибл):
+
+```bash
+$ ansible all -m ping -i inventory.yml
+...
+    "changed": false, 
+    "ping": "pong"
+}
+...
+    "changed": false, 
+    "ping": "pong"
+}
+```
+
