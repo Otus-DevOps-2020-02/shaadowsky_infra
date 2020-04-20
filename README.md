@@ -134,3 +134,80 @@ $ ansible all -m ping -i inventory.yml
 }
 ```
 
+Проверяем версии ruby и bundler. Применяется модуль shell, т.к. модуль command не умеет выполнять сразу две команды, т.к. не использует оболочку (*sh), поэтому в нём не работют перенаправления потоков и нет доступа к некоторым переменным окружения.
+
+Проверять статус службы можно с использованием модулей command, shell, systemd и service. Последний является наиболее универсальным, т.к. до сих пор встречаются ОС с init.d-инициализацией.
+
+```bash
+$ ansible db -m command -a 'systemctl status mongod'
+
+dbserver | CHANGED | rc=0 >>
+* mongod.service - High-performance, schema-free document-oriented database
+   Loaded: loaded (/lib/systemd/system/mongod.service; enabled; vendor preset: enabled)
+   Active: active (running) since Mon 2020-04-20 04:59:58 UTC; 2h 55min ago
+
+$ ansible db -m shell -a 'systemctl status mongod'
+
+dbserver | CHANGED | rc=0 >>
+* mongod.service - High-performance, schema-free document-oriented database
+   Loaded: loaded (/lib/systemd/system/mongod.service; enabled; vendor preset: enabled)
+   Active: active (running) since Mon 2020-04-20 04:59:58 UTC; 2h 55min ago
+
+$ ansible db -m systemd -a name=mongod
+...
+        "ActiveState": "active", 
+
+$  ansible db -m service -a name=mongod
+...
+        "ActiveState": "active", 
+```
+
+Модули systemd и service возвращают ответ в виде набора переменных, которые можно использовать в дальнейшем коде.
+
+Для клонирования репозитория с приложением на сервер используется модуль git. Обрати внимание,  возвращается false, т.к. содержимое репозитория не изменилось с момента развёртывания.
+
+```bash
+$ ansible app -m git -a 'repo=https://github.com/express42/reddit.git dest=/home/appuser/reddit'
+
+appserver | SUCCESS => {
+    "after": "5c217c565c1122c5343dc0514c116ae816c17ca2", 
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python"
+    }, 
+    "before": "5c217c565c1122c5343dc0514c116ae816c17ca2", 
+    "changed": false, 
+    "remote_url_changed": false
+}
+```
+
+Модуль command при повторном развёртывании выдасть ошибку по той же причине:
+
+```bash
+$ ansible app -m command -a 'git clone https://github.com/express42/reddit.git /home/appuser/reddit'
+
+appserver | FAILED | rc=128 >>
+fatal: destination path '/home/appuser/reddit' already exists and is not an empty directory.non-zero return code
+```
+
+создаём плейбук клонирования приложения - _ansible/clone.yml_:
+
+```code
+---
+- name: Clone
+  hosts: app
+  tasks:
+    - name: Clone repo
+      git:
+        repo: https://github.com/express42/reddit.git
+        dest: /home/appuser/reddit
+```
+
+и проверяем выполнение:
+
+```bash
+$ ansible-playbook clone.yml
+
+PLAY RECAP *********************************************************************************
+appserver                  : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+```
+
