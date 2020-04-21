@@ -1,0 +1,8 @@
+# from which network allow ssh access
+source_ranges = ["0.0.0.0/0"]
+
+# set environment
+env = "stage"
+
+# would we deploy?
+dep_sw = true

@@ -54,7 +54,7 @@ source_image_family: "ubuntu-1604-lts" - что взять за базовый
 После описания шаблона необходимо проверить шаблон командой
 
 ```
-$ packer validate ubuntu.json
+$ packer validate ubunt16.json
 ```
 
 Если проверка на ошибки прошла успешно, запускаем сборку образа:
@@ -66,8 +66,8 @@ $ packer build ubuntu16.json
 ПРоверка и сборка с использованием шаблона переменных делается с использование флага --var-file=<your_variables>.json:
 
 ```
-$ packer validate -var-file=variables.json.example ubuntu16.json
-$ packer build -var-file=variables.json ubuntu16.json$
+$ packer validate -var-file=variables.json ubuntu16.json
+$ packer build -var-file=variables.json ubuntu16.json
 ```
 
 В браузерной консоли можно увидеть как packer запустил инстанс ВМ.
