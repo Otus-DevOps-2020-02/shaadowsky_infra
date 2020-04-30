@@ -13,7 +13,6 @@ variable zone {
   default     = "europe-north1-c"
 }
 
-
 variable machine_type {
   description = "Machine type"
   default = "f1-micro"
