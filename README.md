@@ -707,13 +707,31 @@ dbserver                   : ok=3    changed=2    unreachable=0    failed=0    s
 - packer_app.yml - устанавливает Ruby и Bundler
 - packer_db.yml - добавляет репозиторий MongoDB, устанавливает ее и включает сервис.
 
-
-
+Заменим секцию Provision в образе packer/app.json на Ansible:
 
 ```code
+  "provisioners": [
+    {
+      "type": "ansible",
+      "playbook_file": "ansible/packer_app.yml"
+    }
+  ]
 ```
+
+Такие же изменения выполним и для packer/db.json:
+
 ```code
+  "provisioners": [
+    {
+      "type": "ansible",
+      "script": "ansible/packer_db.yml"
+    }
+  ]
 ```
+
+
+
+
 ```code
 ```
 ```code
