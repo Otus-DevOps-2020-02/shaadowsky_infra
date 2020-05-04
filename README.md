@@ -395,24 +395,204 @@ appserver                  : ok=3    changed=2    unreachable=0    failed=0    s
 
 ### Несколько плейбуков
 
-В предыдущей части мы создали один плейбук, в котором
-определили один сценарий (play) и, как помним, для запуска
-нужных тасков на заданной группе хостов мы использовали
-опцию --limit для указания группы хостов и --tags для
-указания нужных тасков.
-Очевидна проблема такого подхода, которая состоит в том,
-что мы должны помнить при каждом запуске плейбука, на каком
-хосте какие таски мы хотим применить, и передавать это в
-опциях командной строки.
-Давайте попробуем разбить наш сценарий на несколько и
-посмотрим, как это изменит ситуацию.
+В предыдущей части мы создали один плейбук, в котором определили один сценарий (play) и, как помним, для запуска нужных тасков на заданной группе хостов мы использовали опцию --limit для указания группы хостов и --tags для указания нужных тасков.
 
-Создадим новый файл reddit_app2.yml в директории
-ansible. Определим в нем несколько сценариев (plays), в
-которые объединим задачи, относящиеся к используемым в
-плейбуке тегам.
-Определим отдельный сценарий для управления
-конфигурацией MongoDB. Будем при этом использовать уже
-имеющиеся наработки из reddit_app.yml плейбука.a
+Очевидна проблема такого подхода, которая состоит в том, что мы должны помнить при каждом запуске плейбука, на каком хосте какие таски мы хотим применить, и передавать это в опциях командной строки.
+
+Давайте попробуем разбить наш сценарий на несколько и посмотрим, как это изменит ситуацию.
+
+Создадим новый файл reddit_app2.yml в директории ansible. Определим в нем несколько сценариев (plays), в которые объединим задачи, относящиеся к используемым в плейбуке тегам.
+
+Определим отдельный сценарий для управления конфигурацией MongoDB. Будем при этом использовать уже имеющиеся наработки из reddit_app.yml плейбука.a
+
+Скопируем определение сценария из reddit_app.yml и всю информацию, относящуюся к настройке MongoDB, которая будет включать в себя таски, хендлеры и переменные. Помним, что таски для настройки MongoDB приложения мы помечали тегом db-tag.
+
+```code
+# Данный сценарий мы составляем только для MongoDB, может стоит поменять описание?
+- name: Configure hosts & deploy application
+# Применять сценарий мы хотим только к серверам группы db или ко всем?
+  hosts: all
+  vars:
+    mongo_bind_ip: 0.0.0.0
+  tasks:
+    - name: Change mongo config file
+      become: true
+      template:
+        src: templates/mongod.conf.j2
+        dest: /etc/mongod.conf
+        mode: 0644
+      tags: db-tag # <-- нужен ли нам здесь тег?
+      notify: restart mongod
+
+  handlers:
+    - name: restart mongod
+      become: true
+      service: name=mongod state=restarted
+```
+
+- Изменим словесное описание:
+- Укажем нужную группу хостов
+- Уберем теги из тасков и определим тег на уровне сценария, чтобы мы могли запускать сценарий, используя тег.
+
+Отметим, что все наши таски требуют выполнения из-под пользователя root, поэтому нет смысла их указывать для каждого task.
+- Вынесем become: true на уровень сценария.
+
+```code
+---
+- name: Configure MongoDB
+  hosts: db
+  tags: db-tag
+  become: true
+  vars:
+    mongo_bind_ip: 0.0.0.0
+  tasks:
+    - name: Change mongo config file
+      template:
+        src: templates/mongod.conf.j2
+        dest: /etc/mongod.conf
+        mode: 0644
+      notify: restart mongod
+
+  handlers:
+  - name: restart mongod
+    service: name=mongod state=restarted
+```
+
+Аналогичным образом определим еще один сценарий для настройки инстанса приложения. Скопируем еще раз определение сценария из reddit_app.yml и всю информацию относящуюся к настройке инстанса приложения, которая будет включать в себя таски, хендлеры и переменные. Помним, что таски для настройки инстанса приложения мы помечали тегом app-tag. Вставим скопированную информацию в reddit_app2.yml следом за сценарием для MongoDB.
+
+```code
+---
+  - name: Configure MongoDB
+...
+  - name: Configure App
+    hosts: all
+    vars:
+     db_host: 10.166.15.203
+    tasks:
+      - name: Add unit file for Puma
+        become: true
+        copy:
+          src: files/puma.service
+          dest: /etc/systemd/system/puma.service
+        tags: app-tag
+        notify: reload puma
+  
+      - name: Add config for DB connection
+        template:
+          src: templates/db_config.j2
+          dest: /home/appuser/db_config
+        tags: app-tag
+  
+      - name: enable puma
+        become: true
+        systemd: name=puma enabled=yes
+        tags: app-tag
+  
+    handlers:
+    - name: reload puma
+      become: true
+      systemd: name=puma state=restarted
+```
+
+теперь напишем сценарий для App.
+
+- Изменим словесное описание
+- Укажем нужную группу хостов
+- Уберем теги из тасков и определим тег на уровне сценария,  чтобы мы запускать сценарий, используя тег.
+- Также заметим, что большинство из наших тасков требуют выполнения из-под пользователя root, поэтому вынесем become: true на уровень сценария.
+- В таске, который копирует конфиг-файл в домашнюю директорию пользователя appuser, явно укажем пользователя и владельца файла.
+
+```code
+  - name: Configure App
+    hosts: app
+    tags: app-tag
+    become: true
+    vars:
+     db_host: 10.166.15.203
+    tasks:
+      - name: Add unit file for Puma
+        copy:
+          src: files/puma.service
+          dest: /etc/systemd/system/puma.service
+        notify: reload puma
+  
+      - name: Add config for DB connection
+        template:
+          src: templates/db_config.j2
+          dest: /home/appuser/db_config
+          owner: appuser
+          group: appuser
+  
+      - name: enable puma
+        systemd: name=puma enabled=yes
+  
+    handlers:
+    - name: reload puma
+      systemd: name=puma state=restarted
+```
+
+Для чистоты эксперимента переподнимает окружение, исправляем адреса серверов в инвентори и проверяем:
+
+```bash
+$ ansible-playbook reddit_app2.yml --tags db-tag --check
+
+$ ansible-playbook reddit_app2.yml --tags db-tag
+
+PLAY RECAP *******************************************************************************************
+dbserver                   : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+```
+
+Обратите внимание, что теперь при вызове команд нам не нужно указывать явно, на каких хостах запускать плейбук. При запуске команды мы указываем тег, который ссылается на конкретный сценарий.
+
+```bash
+$ ansible-playbook reddit_app2.yml --tags app-tag --check
+$ ansible-playbook reddit_app2.yml --tags app-tag
+...
+PLAY RECAP *******************************************************************************************
+appserver                  : ok=5    changed=4    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+```
+
+Далее добавляем сценарий деплоя.
+
+```code
+  - name: Deploy App
+    hosts: app
+    tags: deploy-tag
+    tasks:
+      - name: Fetch the latest version of application code
+        git:
+          repo: 'https://github.com/express42/reddit.git'
+          dest: /home/appuser/reddit
+          version: monolith
+        notify: restart puma
+  
+      - name: bundle install
+        bundler:
+          state: present
+          chdir: /home/appuser/reddit
+  
+    handlers:
+    - name: restart puma
+      become: true
+      systemd: name=puma state=restarted
+```
+
+проверяем:
+
+```bash
+$ ansible-playbook reddit_app2.yml --tags deploy-tag --check
+
+$ ansible-playbook reddit_app2.yml --tags deploy-tag
+
+PLAY RECAP *******************************************************************************************
+appserver                  : ok=4    changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+```
+
+### Несколько плейбуков
+
+
+
+
+
 
 
