@@ -5,10 +5,9 @@
     tasks:
     # Добавим ключ репозитория для последующей работы с ним
     - name: Add APT key
-      apt_key:
-        id: EA312927
-        keyserver: keyserver.ubuntu.com
-  
+      apt_key: url=https://www.mongodb.org/static/pgp/server-3.2.asc  
+      # ключ из гиста не проходит аутенитификацию
+
     # Подключаем репозиторий с пакетами mongodb
     - name: Add APT repository
       apt_repository:
@@ -20,6 +19,7 @@
       apt:
         name: mongodb-org
         state: present
+        update_cache: yes
   
     # Включаем сервис
     - name: Configure service supervisor

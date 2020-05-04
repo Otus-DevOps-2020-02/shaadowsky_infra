@@ -1,16 +1,4 @@
 {
-  "variables": {
-      "project-id": "infra-272603",
-      "source_image_family" : null,
-      "zone": "europe-north1-c",
-      "image_description": "VM with preinstalled Ruby base image. Base for ruby Monolith Reddit app (not installed)",
-      "machine_type": "g1-small",
-      "disk_size": "10",
-      "disk_type": "pd-standard",
-      "network": "default",
-      "tags": "puma-server"
-    },
-
   "builders": [
     {
       "type": "googlecompute",
