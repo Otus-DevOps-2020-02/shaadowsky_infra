@@ -590,9 +590,141 @@ appserver                  : ok=4    changed=3    unreachable=0    failed=0    s
 
 ### Несколько плейбуков
 
+Описав несколько сценариев для управления конфигурацией инстансов и деплоя приложения, управлять хостами стало немного легче.
+
+Теперь, для того чтобы применить нужную часть конфигурационного кода (сценарий) к нужной группе хостов достаточно лишь указать ссылку на эту часть кода, используя тег.
+
+Однако, есть проблема: с ростом числа управляемых сервисов, будет расти количество различных сценариев и, как результат, увеличится объем плейбука.
+
+Это приведет к тому, что в плейбуке, будет сложно разобраться. Поэтому, следующим шагом попытаемся разделить наш плейбук на несколько.
+
+В директории ansible создадим три новых файла: app.yml, db.yml и deploy.yml. Заодно переименуем наши предыдущие плейбуки:
+- reddit_app.yml ➡ reddit_app_one_play.yml
+- reddit_app2.yml ➡ reddit_app_multiple_plays.yml
+
+Из файла reddit_app_multiple_plays.yml скопируем сценарий, относящийся к настройке БД, в файл db.yml. При этом, удалим тег определенный в сценарии. Поскольку мы выносим наши сценарии в отдельные плейбуки, то для запуска нужного нам сценария достаточно будет указать имя плейбука, который его содержит. Значит, тег нам больше не понадобится.
+
+```code
+---
+  - name: Configure MongoDB
+    hosts: db
+    become: true
+    vars:
+      mongo_bind_ip: 0.0.0.0
+    tasks:
+      - name: Change mongo config file
+        template:
+          src: templates/mongod.conf.j2
+          dest: /etc/mongod.conf
+          mode: 0644
+        notify: restart mongod
+  
+    handlers:
+    - name: restart mongod
+      service: name=mongod state=restarted
+```
+
+Аналогично вынесем настройку хоста приложения из reddit_app_multiple_plays.yml в отдельный плейбук app.yml. Не забудем удалить тег, т.к. в нем теперь у нас нет необходимости.
+
+```code
+---
+  - name: Configure App
+    hosts: app
+    become: true
+    vars:
+     db_host: 10.166.15.205
+    tasks:
+      - name: Add unit file for Puma
+        copy:
+          src: files/puma.service
+          dest: /etc/systemd/system/puma.service
+        notify: reload puma
+  
+      - name: Add config for DB connection
+        template:
+          src: templates/db_config.j2
+          dest: /home/appuser/db_config
+          owner: appuser
+          group: appuser
+  
+      - name: enable puma
+        systemd: name=puma enabled=yes
+  
+    handlers:
+    - name: reload puma
+      systemd: name=puma state=restarted
+```
+
+Аналогично вынесем настройку деплоя приложения из reddit_app_multiple_plays.yml в отдельный плейбук deploy.yml. Не забудем удалить тег, т.к. в нем теперь у нас нет необходимости.
+
+```code
+- name: Deploy App
+  hosts: app
+  tasks:
+    - name: Fetch the latest version of application code
+      git:
+        repo: 'https://github.com/express42/reddit.git'
+        dest: /home/appuser/reddit
+        version: monolith
+      notify: restart puma
+
+    - name: bundle install
+      bundler:
+        state: present
+        chdir: /home/appuser/reddit
+
+  handlers:
+  - name: restart puma
+    become: true
+    systemd: name=puma state=restarted
+```
+
+Создадим файл site.yml в директории ansible, в котором опишем управление конфигурацией всей нашей инфраструктуры. Это будет нашим главным плейбуком, который будет включать в себя все остальные:
+
+```code
+---
+- import_playbook: db.yml
+- import_playbook: app.yml
+- import_playbook: deploy.yml
+```
+
+Переподнимает окружение stage, изменяем внешние IP-адреса инстансов и переменную db_host в плейбуке app.yml
+
+```bash
+$ terraform destroy
+$ terraform apply -auto-approve=false
+$ ansible-playbook site.yml --check
+$ ansible-playbook site.yml
+...
+PLAY RECAP *******************************************************************************************
+appserver                  : ok=9    changed=7    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+dbserver                   : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+```
+
+## Провиженинг в Packer
+
+В данной части мы изменим provision в Packer и заменим bashскрипты на Ansible-плейбуки. Мы уже создали плейбуки для конфигурации и деплоя приложения. Создадим теперь на их основе плейбуки ansible/packer_app.yml и ansible/packer_db.yml. Каждый из них должен реализовывать функционал bashскриптов, которые использовались в Packer ранее.
+- packer_app.yml - устанавливает Ruby и Bundler
+- packer_db.yml - добавляет репозиторий MongoDB, устанавливает ее и включает сервис.
 
 
 
 
-
-
+```code
+```
+```code
+```
+```code
+```
+```code
+```
+```code
+```
+```code
+```
+```code
+```
+```code
+```
+```code
+```
