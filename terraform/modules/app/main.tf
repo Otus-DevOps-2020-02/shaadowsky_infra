@@ -1,7 +1,7 @@
 resource "google_compute_instance" "app_with_puma" {
   count        = var.dep_sw ? 1 : 0
   name         = "${lower(var.env_sfx)}-reddit-app"
-  machine_type = "f1-micro"
+  machine_type = "g1-small"
   zone         = var.zone
   tags         = ["reddit-app"]
   boot_disk {
@@ -37,7 +37,7 @@ resource "google_compute_instance" "app_with_puma" {
 resource "google_compute_instance" "app_without_puma" {
   count        = var.dep_sw ? 0 : 1
   name         = "${lower(var.env_sfx)}-reddit-app"
-  machine_type = "f1-micro"
+  machine_type = "g1-small"
   zone         = var.zone
   tags         = ["reddit-app"]
   boot_disk {

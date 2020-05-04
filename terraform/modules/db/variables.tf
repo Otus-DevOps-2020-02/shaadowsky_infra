@@ -15,7 +15,7 @@ variable zone {
 
 variable machine_type {
   description = "Machine type"
-  default = "f1-micro"
+  default = "g1-small"
 }
 
 variable db_disk_image {
