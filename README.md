@@ -23,6 +23,8 @@ ansible 2.9.7
 - либо выключить его с помощью переменной, если это было предусмотрено
 - либо закомментировать или удалить код провижининга для app и db модулей
 
+**_все работы выполнены в окружении stage_**
+
 ### Один playbook, один сценарий
 
 Основное преимущество Ansible заключается в том, что
@@ -261,6 +263,89 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 ```
+
+Через переменную окружения EnvironmentFile передается адрес инстанса БД, чтобы приложение знало куда ему обращаться для хранения данных.
+
+Добавим в наш сценарий таск для копирования unit-файла на хост приложения. Для копирования простого файла на удаленный хост, используем модуль copy, а для настройки автостарта Puma-сервера используем модуль systemd. 
+
+```code
+---
+  - name: Configure hosts & deploy application 
+...
+  - name: Add unit file for Puma
+    become: true
+    copy:
+      src: files/puma.service
+      dsdt: /etc/systemd/system/puma.service
+    tags: app-tag
+    notify: reload puma
+  
+  - name: enable Puma
+    become: true
+    systemd: name=puma enabled=yes
+```
+
+Не забудем добавить новый handler в каждый name, который укажет systemd, что unit для сервиса изменился и его следует перечитать:
+
+```code
+handlers:
+  - name: restart mongod
+    become: true
+    service: name=mongod state=restarted
+
+  - name: reload puma
+    become: true
+    systemd: name=puma state=restarted
+```
+
+Создаем шаблон в директории templates/db_config.j2 куда добавим следующую строку:
+
+```code
+DATABASE_URL={{ db_host }
+```
+
+Как видим, данный шаблон содержит присвоение переменной DATABASE_URL значения, которое мы передаем через Ansible переменную db_host.
+
+Добавим таск для копирования созданного шаблона:
+
+```code
+  - name: Add unit file for Puma
+...
+  - name: Add config for DB connection
+    template:
+      src: templates/db_config.j2
+      dest: /home/appuser/db_config
+    tags: app-tag
+
+  - name: enable puma
+    become: true
+    systemd: name=puma enabled=yes
+    tags: app-tag
+```
+
+И определяем переменную:
+
+```code
+---
+  - name: Configure hosts & deploy application 
+    hosts: all 
+    vars:
+      mongo_bind_ip: 0.0.0.0
+      db_host: 10.166.15.199 # <-- подставьте сюда ваш IP
+    tasks: 
+```
+
+Переменной db_host присваиваем значение внутреннего IP-адреса  инстанса базы данных. Этот адрес можно посмотреть в консоли GCP, используя terraform show или команду gcloud.
+
+Пробный прогон:
+
+
+
+
+
+
+
+
 
 
 
