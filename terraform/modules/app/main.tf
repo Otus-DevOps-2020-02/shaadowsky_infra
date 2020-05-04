@@ -25,13 +25,13 @@ resource "google_compute_instance" "app_with_puma" {
     agent       = false
     private_key = file(var.private_key_path)
   }
-  provisioner "file" {
-    content     = templatefile("${path.module}/puma.tpl", { db_internal_ip = var.db_internal_ip })
-    destination = "/tmp/puma.service"
-  }
-  provisioner "remote-exec" {
-    script = "${path.module}/deploy.sh"
-  }
+#  provisioner "file" {
+#    content     = templatefile("${path.module}/puma.tpl", { db_internal_ip = var.db_internal_ip })
+#    destination = "/tmp/puma.service"
+#  }
+#  provisioner "remote-exec" {
+#    script = "${path.module}/deploy.sh"
+#  }
 }
 
 resource "google_compute_instance" "app_without_puma" {

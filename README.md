@@ -137,7 +137,7 @@ AnsibleUndefinedVariable - Ошибка❗ Переменная, которая 
   - name: Configure hosts & deploy application 
     hosts: all 
     vars:
-      mongod_bind_ip: 0.0.0.0# <-- Переменная задается в блоке vars
+      mongo_bind_ip: 0.0.0.0 # <-- Переменная задается в блоке vars
     tasks: 
       - name: change mongo config file
         become: true 
@@ -147,4 +147,110 @@ AnsibleUndefinedVariable - Ошибка❗ Переменная, которая 
           mode: 0644
         tags: db-tag
 ```
+
+Повторяем проверку плейбука:
+
+```bash
+$ ansible-playbook reddit_app.yml --check --limit db
+
+PLAY [Configure hosts & deploy application] **********************************************************
+
+TASK [Gathering Facts] *******************************************************************************
+...
+ok: [dbserver]
+
+TASK [change mongo config file] **********************************************************************
+changed: [dbserver]
+
+PLAY RECAP *******************************************************************************************
+dbserver                   : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+```
+
+Теперь проверка должна пройти успешно. Пробный прогон показывает нам, что таск с описанием "Change mongo config file" изменит свое состояние для хоста dbserver, что означает, что на этом хосте произойдут изменения относительно его текущего состояния.
+
+Handlers похожи на таски, однако запускаются только по оповещению от других задач. Таск шлет оповещение handler-у в случае, когда он меняет свое состояние. По этой причине handlers удобно использовать для перезапуска сервисов. Это, например, позволяет перезапускать сервис, только в случае если поменялся его конфиг-файл.
+
+Изменение конфигурационного файла MongoDВ требует от нас перезапуска БД для применения конфигурации. Используем для этой задачи handler. Определим handler для рестарта БД и добавим вызов handler-а в созданный нами таск.
+
+Файл ansible/reddit_app.yml:
+
+```code
+---
+  - name: Configure hosts & deploy application 
+    hosts: all 
+    vars:
+      mongo_bind_ip: 0.0.0.0
+    tasks: 
+    - name: change mongo config file
+      become: true 
+      template:
+        src: templates/mongod.conf.j2 
+        dest: /etc/mongod.conf 
+        mode: 0644
+      tags: db-tag
+    handlers:: # <-- Добавим блок handlers и задачу
+    - name: restart mongod
+      become: true
+      service: name=mongod state=restarted
+```
+
+Для начала сделаем пробный прогон, и убедимся, что нет ошибок:
+
+```bash
+$  ansible-playbook reddit_app.yml --check --limit db
+...
+PLAY RECAP *******************************************************************************************
+dbserver                   : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+```
+
+Применяем плейбук:
+
+```bash
+$  ansible-playbook reddit_app.yml --check --limit db
+
+PLAY [Configure hosts & deploy application] **********************************************************
+
+TASK [Gathering Facts] *******************************************************************************
+[DEPRECATION WARNING]: Distribution Ubuntu 16.04 on host dbserver should use /usr/bin/python3, but is
+ using /usr/bin/python for backward compatibility with prior Ansible releases. A future Ansible 
+release will default to using the discovered platform python for this host. See 
+https://docs.ansible.com/ansible/2.9/reference_appendices/interpreter_discovery.html for more 
+information. This feature will be removed in version 2.12. Deprecation warnings can be disabled by 
+setting deprecation_warnings=False in ansible.cfg.
+ok: [dbserver]
+
+TASK [change mongo config file] **********************************************************************
+changed: [dbserver]
+
+PLAY RECAP *******************************************************************************************
+dbserver                   : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+shaad@shaad-mobile:~/otus-devops/shaadowsky_infra/ansible$ ansible-playbook reddit_app.yml  --limit db
+
+PLAY [Configure hosts & deploy application] **********************************************************
+
+TASK [Gathering Facts] *******************************************************************************
+...
+ok: [dbserver]
+
+TASK [change mongo config file] **********************************************************************
+changed: [dbserver]
+
+PLAY RECAP *******************************************************************************************
+dbserver                   : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+```
+
+#### настройка инстанса приложения
+
+Вспомним, как на предыдущих занятиях мы уже копировали unit-файл для сервера Puma, чтобы управлять сервисом и добавить его в автостарт. Теперь скопируем unit-файл на инстанс приложения, используя Ansible.
+Создайте директорию files внутри директории ansible и добавьте туда файл puma.service. 
+
+
+
+
+
+
+
+
+
 
