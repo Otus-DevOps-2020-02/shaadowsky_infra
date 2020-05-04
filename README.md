@@ -337,22 +337,82 @@ DATABASE_URL={{ db_host }
 
 Переменной db_host присваиваем значение внутреннего IP-адреса  инстанса базы данных. Этот адрес можно посмотреть в консоли GCP, используя terraform show или команду gcloud.
 
-Пробный прогон:
+Проверяем и применяем:
 
+```bash
+$ ansible-playbook reddit_app.yml --check --limit app --tags app-tag
+$ ansible-playbook reddit_app.yml --limit app --tags app-tag
+...
+PLAY RECAP *******************************************************************************************
+appserver                  : ok=5    changed=4    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+```
 
+### Деплой (deploy)
 
+Добавим еще несколько тасков в сценарий нашего плейбука. Используем модули git и bundle для клонирования последней версии кода нашего приложения и установки зависимых Ruby Gems через bundle.
 
+```code
+  tasks:
+...
+    - name: Fetch the latest version of application code
+      git:
+        repo: 'https://github.com/express42/reddit.git'
+        dest: /home/appuser/reddit
+        version: monolith # <-- Указываем нужную ветку
+      tags: deploy-tag
+      notify: reload puma
 
+    - name: Bundle install
+      bundler:
+        state: present
+        chdir: /home/appuser/reddit # <-- В какой директории выполнить команду bundle
+        tags: deploy-tag
+```
 
+Проверяем и раскатываем:
 
+```
+$ ansible-playbook reddit_app.yml --check --limit app --tags deploy-tag
 
+$ ansible-playbook reddit_app.yml --limit app --tags deploy-tag
 
+PLAY [Configure hosts & deploy application] **********************************************************
 
+TASK [Gathering Facts] *******************************************************************************
+ok: [appserver]
 
+TASK [Fetch the latest version of application code] **************************************************
+changed: [appserver]
 
+RUNNING HANDLER [reload puma] ************************************************************************
+changed: [appserver]
 
+PLAY RECAP *******************************************************************************************
+appserver                  : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+```
 
+*_NOTE_* почему-то не работало без become: true
 
+### Несколько плейбуков
 
+В предыдущей части мы создали один плейбук, в котором
+определили один сценарий (play) и, как помним, для запуска
+нужных тасков на заданной группе хостов мы использовали
+опцию --limit для указания группы хостов и --tags для
+указания нужных тасков.
+Очевидна проблема такого подхода, которая состоит в том,
+что мы должны помнить при каждом запуске плейбука, на каком
+хосте какие таски мы хотим применить, и передавать это в
+опциях командной строки.
+Давайте попробуем разбить наш сценарий на несколько и
+посмотрим, как это изменит ситуацию.
+
+Создадим новый файл reddit_app2.yml в директории
+ansible. Определим в нем несколько сценариев (plays), в
+которые объединим задачи, относящиеся к используемым в
+плейбуке тегам.
+Определим отдельный сценарий для управления
+конфигурацией MongoDB. Будем при этом использовать уже
+имеющиеся наработки из reddit_app.yml плейбука.a
 
 

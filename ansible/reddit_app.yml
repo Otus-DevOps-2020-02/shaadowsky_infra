@@ -6,43 +6,59 @@
       db_host: 10.166.15.199
 
     tasks: 
-    - name: Сhange mongo config file
-      become: true 
-      template:
-        src: templates/mongod.conf.j2 
-        dest: /etc/mongod.conf 
-        mode: 0644
-      tags: db-tag
-      notify: restart mongod
+      - name: Сhange mongo config file
+        become: true 
+        template:
+          src: templates/mongod.conf.j2 
+          dest: /etc/mongod.conf 
+          mode: 0644
+        tags: db-tag
+        notify: restart mongod
 
-    - name: Add unit file for Puma
-      become: true
-      copy:
-        src: files/puma.service
-        dest: /etc/systemd/system/puma.service
-      tags: app-tag
-      notify: reload puma
+      - name: Add unit file for Puma
+        become: true
+        copy:
+          src: files/puma.service
+          dest: /etc/systemd/system/puma.service
+        tags: app-tag
+        notify: reload puma
   
-    - name: Add config for DB connection
-      template:
-        src: templates/db_config.j2
-        dest: /home/appuser/db_config
-      tags: app-tag
+      - name: Add config for DB connection
+        template:
+          src: templates/db_config.j2
+          dest: /home/appuser/db_config
+        tags: app-tag
 
-    - name: enable Puma
-      become: true
-      systemd: name=puma enabled=yes
-      tags: app-tag
+      - name: enable Puma
+        become: true
+        systemd: name=puma enabled=yes
+        tags: app-tag
+
+      - name: Fetch the latest version of application code
+        become: true
+        git:
+          repo: 'https://github.com/express42/reddit.git'
+          dest: /home/appuser/reddit
+          version: monolith 
+        tags: deploy-tag
+        notify: reload puma
+
+      - name: Bundle install
+#        become: true
+        bundler:
+          state: present
+          chdir: /home/appuser/reddit
+        tags: deploy-tag
 
     handlers:
 
-    - name: restart mongod
-      become: true
-      service: name=mongod state=restarted
+      - name: restart mongod
+        become: true
+        service: name=mongod state=restarted
 
-    - name: reload puma
-      become: true
-      systemd: name=puma state=restarted
+      - name: reload puma
+        become: true
+        systemd: name=puma state=restarted
 
 
 
