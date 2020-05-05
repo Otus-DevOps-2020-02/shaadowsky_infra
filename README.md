@@ -446,12 +446,89 @@ nginx_sites:
       }
 ```
 
+Добавьте в конфигурацию Terraform открытие 80 порта для инстанса приложения. Добавьте вызов роли jdauphant.nginx в плейбук app.yml Примените плейбук site.yml для окружения stage и проверьте, что приложение теперь доступно на 80 порту
 
+### Работа с Ansible Vault
 
+Для безопасной работы с приватными данными (пароли, приватные ключи и т.д.) используется механизм . Данные сохраняются в зашифрованных файлах, которые при выполнении плейбука автоматически расшифровываются. Таким образом, приватные данные можно хранить в системе контроля версий.
 
+Для шифрования используется мастер-пароль (aka vault key). Его нужно передавать команде ansible-playbook при запуске, либо указать файл с ключом в ansible.cfg. Не допускайте хранения этого ключ-файла в Git! Используйте для разных окружений разный vault key.
 
+Подготовим плейбук для создания пользователей, пароль пользователей будем хранить в зашифрованном виде в файле credentials.yml:
+1. Создайте файл vault.key со произвольной строкой ключа
+2. Изменим файл ansible.cfg, добавим опцию
+vault_password_file в секцию [defaults]
 
+```code
+[defaults]
+...
+vault_password_file = vault.key
+```
 
+❗ Обязательно добавьте в .gitignore файл vault.key. А еще лучше - храните его out-of-tree, аналогично ключам SSH (например, в папке ~/.ansible/vault.key)
 
+Добавим плейбук для создания пользователей - файл
+ansible/playbooks/users.yml:
+
+```code
+---
+- name: Create users
+  hosts: all
+  become: true
+
+  vars_files:
+    - "{{ inventory_dir }}/credentials.yml"
+
+  tasks:
+    - name: create users
+      user:
+        name: "{{ item.key }}"
+        password: "{{ item.value.password|password_hash('sha512', 65534|random(seed=inventory_hostname)|string) }}"
+        groups: "{{ item.value.groups | default(omit) }}"
+      with_dict: "{{ credentials.users }}"
+```
+
+Создадим файл с данными пользователей для каждого окружения 
+
+Файл для prod (ansible/environments/prod/credentials.yml):
+
+```code
+---
+credentials:
+  users:
+    admin:
+      password: admin123
+      groups: sudo
+```
+
+Файл для stage (ansible/environments/stage/credentials.yml):
+
+```code
+---
+credentials:
+  users:
+    admin:
+      password: qwerty123
+      groups: sudo
+    qauser:
+      password: test123
+```
+
+Зашифруем файлы используя vault.key (используем одинаковый для всех окружений):
+
+```bash
+$ ansible-vault encrypt environments/prod/credentials.yml
+$ ansible-vault encrypt environments/stage/credentials.yml
+```
+
+Проверьте содержимое файлов, убедитесь что они зашифрованы
+
+Добавьте вызов плейбука в файл site.yml и выполните его
+для stage окружения:
+
+```bash
+$ ansible-playbook playbooks/site.yml --check
+$ ansible-playbook playbooks/site.yml
+```
 
 

@@ -19,3 +19,6 @@ variables.json
 *.retry
 # Ansible community roles
 jdauphant.nginx
+
+# ansible vault
+vault.key
