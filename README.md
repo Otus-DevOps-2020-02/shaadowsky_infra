@@ -356,5 +356,102 @@ debug: msg="This host is in {{ env }} environment!!!"
 Перенесем все плейбуки в отдельную директорию согласно best practices:
 - Создадим директорию ansible/playbooks и перенесем туда все наши плейбуки, в том числе из прошлого ДЗ.
 - В директории ansible у нас остались еще файлы из прошлых ДЗ, которые нам не особо нужны. Создадим директорию ansible/old и перенесем туда все, что не относится к текущей конфигурации.
+- откорректировать ссылки на плейбуки сборки в файлах packer
+
+улучшим наш ansible.cfg. Для этого приведем его к такому виду:
+
+```code
+[defaults]
+inventory = ./environments/stage/inventory
+remote_user = appuser
+private_key_file = ~/.ssh/appuser
+# Отключим проверку SSH Host-keys (поскольку они всегда разные для новых инстансов)
+host_key_checking = False
+# Отключим создание *.retry-файлов (они нечасто нужны, но мешаются под руками)
+retry_files_enabled = False
+# # Явно укажем расположение ролей (можно задать несколько путей через ; )
+roles_path = ./roles
+[diff]
+# Включим обязательный вывод diff при наличии изменений и вывод 5 строк контекста
+always = True
+context = 5
+```
+
+Для проверки роли пересоздадим инфраструктуру окружения stage, используя команды:
+
+```bash
+$ terraform destroy
+$ terraform apply -auto-approve
+
+Apply complete! Resources: 6 added, 0 changed, 0 destroyed.
+```
+
+Перед проверкой не забудьте изменить внешние IP адреса инстансов в инвентори файле ansible/environments/stage/inventory и переменную db_host в stage/group_vars/app
+
+```bash
+$ ansible-playbook playbooks/site.yml --check
+$ ansible-playbook playbooks/site.yml
+
+PLAY RECAP *******************************************************************************************
+appserver                  : ok=10   changed=7    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+dbserver                   : ok=4    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+```
+
+Для проверки настройки prod окружения сначала удалим инфраструктуру окружения stage. Затем поднимем инфраструктуру для prod окружения.
+Перед проверкой не забудьте изменить внешние IP-адреса инстансов в инвентори файле ansible/environments/prod/inventory и переменную db_host в prod/group_vars/app
+
+```bash
+$ ansible-playbook -i environments/prod/inventory playbooks/site.yml --check
+$ ansible-playbook -i environments/prod/inventory playbooks/site.yml
+...
+PLAY RECAP *******************************************************************************************
+appserver                  : ok=10   changed=7    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+dbserver                   : ok=4    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+```
+
+### Работа с Community-ролями
+
+коммьюнити-роли в основном находятся на портале Ansible Galaxy и работа с ними производится с помощью утилиты ansible-galaxy и файла requirements.yml
+
+Используем роль jdauphant.nginx и настроим обратное проксирование для нашего приложения с помощью nginx
+
+Хорошей практикой является разделение зависимостей ролей (requirements.yml) по окружениям.
+1. Создадим файлы environments/stage/requirements.yml и environments/prod/requirements.yml
+2. Добавим в них запись вида:
+
+```code
+- src: jdauphant.nginx
+  version: v2.21.1
+```
+
+3. Установим роль:
+
+```bash
+$ ansible-galaxy install -r environments/stage/requirements.yml
+```
+
+4. Комьюнити-роли не стоит коммитить в свой репозиторий, для этого добавим в .gitignore запись: jdauphant.nginx
+
+Рассмотрим [документацию роли](https://github.com/jdauphant/ansible-role-nginx).
+Как мы видим, для минимальной настройки проксирования необходимо добавить следующие переменные в stage/group_vars/app и prod/group_vars/app
+:
+
+```code
+nginx_sites:
+  default:
+    - listen 80
+    - server_name "reddit"
+    - location / {
+      proxy_pass http://127.0.0.1:порт_приложения;
+      }
+```
+
+
+
+
+
+
+
+
 
 
