@@ -5,7 +5,7 @@ galaxy_info:
   platforms:
     - name: Ubuntu
       versions:
-        - all 
+        - all
         - 16.04
 
   # If the issue tracker for your role is not on github, uncomment the
@@ -55,4 +55,3 @@ galaxy_info:
 dependencies: []
   # List your role dependencies here, one per line. Be sure to remove the '[]' above,
   # if you add dependencies to this list.
-  
