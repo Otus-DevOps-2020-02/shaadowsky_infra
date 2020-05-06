@@ -1,25 +1,15 @@
 {
-  "variables": {
-      "project-id": "",
-      "source_image_family" : "",
-      "image_description": "packer study",
-      "disk_size": "10",
-      "disk_type": "pd-standard",
-      "network": "default",
-      "tags": "puma-server"
-    },
-
   "builders": [
     {
       "type": "googlecompute",
       "project_id": "{{user `project_id`}}",
-      "image_name": "reddit-db-{{timestamp}}",
+      "image_name": "reddit-db-base-{{timestamp}}",
       "image_family": "reddit-db-base",
-      "image_description": "{{user `image_description`}}",
       "source_image_family": "{{user `source_image_family`}}",
-      "zone": "europe-north1-c",
+      "zone": "{{user `zone`}}",
       "ssh_username": "appuser",
-      "machine_type": "f1-micro",
+      "machine_type": "{{user `machine_type`}}",
+      "image_description": "{{user `image_description`}}",
       "disk_size": "{{user `disk_size`}}",
       "disk_type": "{{user `disk_type`}}",
       "network": "{{user `network`}}",
@@ -29,9 +19,8 @@
 
   "provisioners": [
     {
-      "type": "shell",
-      "script": "scripts/install_mongodb.sh",
-      "execute_command": "sudo {{.Path}}"
+      "type": "ansible",
+      "playbook_file": "ansible/packer_db.yml"
     }
   ]
 }
