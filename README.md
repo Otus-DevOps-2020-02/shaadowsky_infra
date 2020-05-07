@@ -376,8 +376,54 @@ WantedBy=multi-user.target
     systemd: name=puma enabled=yes
 ```
 
+Для провижининга хоста appserver мы
+использовали плейбук site.yml.
+Данный плейбук, помимо плейбука app.yml,
+также вызывает плейбук ansible/playbooks/
+deploy.yml, который применяется для группы
+хостов app и который нам тоже нужно не забыть
+параметризировать
 
-```code
+```ansible/playbooks/deploy.yml
+- name: Deploy App
+  hosts: app
+  vars:
+    deploy_user: appuser
+
+  tasks:
+    - name: Fetch the latest version of application code
+      git:
+        repo: 'https://github.com/express42/reddit.git'
+        dest: "/home/{{ deploy_user }}/reddit"
+        version: monolith
+      notify: restart puma
+
+    - name: bundle install
+      bundler:
+        state: present
+        chdir: "/home/{{ deploy_user }}/reddit"
+
+  handlers:
+  - name: restart puma
+    become: true
+    systemd: name=puma state=restarted
+```
+
+Мы ввели дополнительную переменную для
+пользователя, запускающего приложение и
+параметризировали нашу конфигурацию. Теперь
+при вызове плейбуков для appserver
+переопределим дефолтное значение переменной
+пользователя на имя пользователя используемое
+нашим боксом по умолчанию, т.е. ubuntu.
+Используем при этом переменные extra_vars,
+имеющие самый высокий приоритет по
+сравнению со всеми остальными.
+
+Добавим extra_vars переменные в блок определения
+провижинера в Vagrantfile
+
+```ansible/Vagrantfile
   config.vm.define "appserver" do |app|
     app.vm.box = "ubuntu/xenial64"
     app.vm.hostname = "appserver"
@@ -397,4 +443,17 @@ WantedBy=multi-user.target
 end
 ```
 
-а также вводим переменную deploy_user в роль app
+Проверяем:
+
+```bash
+$ vagrant provision appserver
+==> appserver: Running provisioner: ansible...
+TASK [Fetch the latest version of application code] ****************************
+changed: [appserver]
+TASK [bundle install] **********************************************************
+changed: [appserver]
+RUNNING HANDLER [restart puma] *************************************************
+changed: [appserver]
+PLAY RECAP *********************************************************************
+appserver : ok=11 changed=5 unreachable=0 failed=0 
+```
