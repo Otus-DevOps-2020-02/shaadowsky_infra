@@ -457,3 +457,181 @@ changed: [appserver]
 PLAY RECAP *********************************************************************
 appserver : ok=11 changed=5 unreachable=0 failed=0 
 ```
+
+Выполните в директории ansible команду по удалению созданных машин _vagrant destroy -f_
+
+Теперь создадим окружение и проверим что все корректно настроится и задеплоится _vagrant up_
+
+Проверьте отсутсвие ошибок и что приложение корректно работает. Удалите окружение _vagrant destroy -f_
+
+### Установка зависимостей
+
+Для локального тестирования Ansible ролей будем использовать Molecule для создания машин и проверки конфигурации и Testinfra для написания тестов. Сначала установим все необходимые компоненты для тестирования: Molecule, Ansible, Testinfra на локальную машину используя pip. Установку данных модулей рекомендуется выполнять в созданной через virtualenv среде работы с питоном. Инструкции по установке virtualenv и virtualenvwrapper можно посмотреть [здесь](http://docs.python-guide.org/en/latest/dev/virtualenvs/). 
+
+Добавьте в файл requirements.txt в директории ansible
+следующие записи:
+
+```ansible/requirements.txt
+ansible>=2.4
+molecule>=2.6
+testinfra>=1.10
+python-vagrant>=0.5.15
+```
+
+```bash
+$ pip install -r requirements.txt
+$ molecule --version 
+molecule 3.0.2.1
+   ansible==2.9.7 python==2.7
+$ pip install -r requirements.txt
+$ ansible --version
+ansible 2.9.7
+```
+
+По умолчанию molecule не умеет работать с vagrant, не обходимо поставить плагин:
+
+```bash
+$ $ pip install molecule-vagrant
+...
+Installing collected packages: distro, selinux, molecule-vagrant
+Successfully installed distro-1.5.0 molecule-vagrant-0.2 selinux-0.2.1
+```
+
+Используем команду molecule init для создания заготовки тестов для роли db. Выполнитекоманду ниже в директории с ролью nsible/roles/db:
+
+```bash
+$ molecule init scenario default -r db -d vagrant
+--> Initializing new scenario default...
+Initialized scenario in /home/shaad/DevOps/shaadowsky_infra/ansible/roles/db/molecule/default successfully.
+```
+
+Добавим несколько тестов, используя модули Testinfra, для проверки конфигурации, настраиваемой ролью db:
+
+```db/molecule/default/tests/test_default.py
+import os
+
+import testinfra.utils.ansible_runner
+
+testinfra_hosts = testinfra.utils.ansible_runner.AnsibleRunner(
+    os.environ['MOLECULE_INVENTORY_FILE']).get_hosts('all')
+
+# check if MongoDB is enabled and running
+def test_mongo_running_and_enabled(host):
+    mongo = host.service("mongod")
+    assert mongo.is_running
+    assert mongo.is_enabled
+
+# check if configuration file contains the required line
+def test_config_file(host):
+    config_file = host.file('/etc/mongod.conf')
+    assert config_file.contains('bindIp: 0.0.0.0')
+    assert config_file.is_file
+```
+
+Описание тестовой машины, которая создается Molecule для тестов содержится в файле db/molecule/default/molecule.yml
+
+```code
+---
+dependency:
+  name: galaxy
+driver:
+  name: vagrant
+  provider:
+    name: virtualbox
+lint: yamllint
+platforms:
+  - name: instance
+    box: ubuntu/xenial64
+provisioner:
+  name: ansible
+  lint: ansible-lint
+verifier:
+  name: ansible
+```
+
+Создадим VM для проверки роли. В директории ansible/roles/db выполните команду:
+
+```bash
+$ molecule create
+--> Test matrix
+...    
+    PLAY RECAP *********************************************************************
+    instance                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+```
+
+Посмотрим список созданных инстансов, которыми управляет
+Molecule:
+
+```bash
+$ molecule list 
+Instance Name    Driver Name    Provisioner Name    Scenario Name    Created    Converged
+---------------  -------------  ------------------  ---------------  ---------  -----------
+instance         vagrant        ansible             default          true       false
+```
+
+Также можем при необходимости дебага
+подключиться по SSH внутрь VM:
+
+```bash
+$  molecule login -h instance
+Warning: Permanently added '[127.0.0.1]:2222' (ECDSA) to the list of known hosts.
+Welcome to Ubuntu 16.04.6 LTS (GNU/Linux 4.4.0-178-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/advantage
+
+
+0 packages can be updated.
+0 updates are security updates.
+
+New release '18.04.4 LTS' available.
+Run 'do-release-upgrade' to upgrade to it.
+
+
+Last login: Mon May 11 04:34:20 2020 from 10.0.2.2
+vagrant@instance:~$ exit
+logout
+Connection to 127.0.0.1 closed.
+```
+
+Molecule init генерирует плейбук для применения нашей роли. Данный плейбук можно посмотреть по пути db/molecule/default/converge.yml.
+
+Поскольку таски нашей роли требуют выполнения из-под суперпользователя, то добавим become в определение сценария этого плейбука.
+
+Дополнительно зададим еще переменную mongo_bind_ip.
+
+```code
+---
+- name: Converge
+  become: true
+  hosts: all
+  vars:
+    mongo_bind_ip: 0.0.0.0
+  roles:
+    - role: db
+```
+
+Применим playbook.yml, в котором вызывается наша роль к
+созданному хосту:
+
+```bash
+$ molecule converge
+--> Test matrix
+...
+    PLAY RECAP *********************************************************************
+    instance                   : ok=8    changed=6    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+```
+
+Прогоним тесты:
+
+```bash
+$  molecule verify 
+--> Test matrix
+...
+    PLAY RECAP *********************************************************************
+    instance                   : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+    
+Verifier completed successfully.
+```
+
