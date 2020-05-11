@@ -1,0 +1,12 @@
+---
+  - name: Install ruby and rubygems and required packages
+    apt: "name={{ item }} state=present"
+    with_items:
+      - ruby-full
+      - ruby-bundler
+      - build-essential
+    tags: ruby
+
+  - name: Check Ruby and Bundler version
+    shell: ruby -v; bundler -v
+    changed_when: false
